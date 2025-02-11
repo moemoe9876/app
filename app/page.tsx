@@ -79,7 +79,7 @@ export default function Home() {
           ) : (
             <ResultDisplay
               result={result}
-              schema={schema}
+              schema={schema || ""}
               onReset={handleReset}
             />
           )}

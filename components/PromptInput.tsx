@@ -30,6 +30,7 @@ export function PromptInput({ onSubmit, file }: PromptInputProps) {
 
       <Textarea
         id="prompt"
+        className="focus:border-red"
         placeholder="Example: Extract all invoice details including invoice number, date, items, prices, and total amount..."
         value={prompt}
         onChange={(e) => setPrompt(e.target.value)}

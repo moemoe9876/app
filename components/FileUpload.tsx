@@ -54,10 +54,10 @@ export function FileUpload({ onFileSelect }: FileUploadProps) {
       {!selectedFile ? (
         <div
           {...getRootProps()}
-          className={`min-h-[150px]
-          bg-gray-100 p-4 rounded-lg
+          className={`min-h-[150px] p-4 rounded-lg
           ${isDragActive ? "bg-blue-500/15" : "border-border"}
           transition-colors duration-200 ease-in-out hover:bg-blue-500/15
+          bg-background
           cursor-pointer flex items-center justify-center gap-4
         `}
         >
@@ -75,7 +75,7 @@ export function FileUpload({ onFileSelect }: FileUploadProps) {
           </div>
         </div>
       ) : (
-        <div className="flex my-auto flex-row items-center bg-gray-100 p-4 rounded-lg">
+        <div className="flex my-auto flex-row items-center p-4 rounded-lg">
           <FileIcon className="w-8 h-8 text-blue-500 mr-3 flex-shrink-0" />
           <div className="flex-grow min-w-0">
             <p className="text-sm font-medium truncate">{selectedFile?.name}</p>
