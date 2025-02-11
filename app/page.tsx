@@ -7,7 +7,7 @@ import { ResultDisplay } from '@/components/ResultDisplay'
 import { FileText } from 'lucide-react'
 
 export default function Home() {
-  const [currentStep, setCurrentStep] = useState<'upload' | 'prompt' | 'result'>('upload')
+  const [currentStep, setCurrentStep] = useState<'upload' | 'prompt' | 'result'>('prompt')
   const [file, setFile] = useState<File | null>(null)
   const [result, setResult] = useState<any>(null)
 
@@ -19,7 +19,7 @@ export default function Home() {
   const handlePromptSubmit = async (prompt: string) => {
     try {
       // First, get the JSON schema
-      const schemaResponse = await fetch('/api/generate-schema', {
+      const schemaResponse = await fetch('/api/schema', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -29,19 +29,21 @@ export default function Home() {
 
       const { schema } = await schemaResponse.json()
 
-      // Then, process the PDF with the schema
-      const formData = new FormData()
-      formData.append('file', file!)
-      formData.append('schema', JSON.stringify(schema))
-
-      const extractResponse = await fetch('/api/extract-data', {
-        method: 'POST',
-        body: formData,
-      })
-
-      const data = await extractResponse.json()
-      setResult(data)
+      setResult(schema)
       setCurrentStep('result')
+      // // Then, process the PDF with the schema
+      // const formData = new FormData()
+      // formData.append('file', file!)
+      // formData.append('schema', JSON.stringify(schema))
+
+      // const extractResponse = await fetch('/api/extract', {
+      //   method: 'POST',
+      //   body: formData,
+      // })
+
+      // const data = await extractResponse.json()
+      // setResult(data)
+      // setCurrentStep('result')
     } catch (error) {
       console.error('Error processing request:', error)
     }
