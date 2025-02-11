@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { GoogleGenerativeAI } from "@google/generative-ai";
 
 const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY!);
+const MODEL_ID = "gemini-2.0-flash";
 
 export async function POST(request: Request) {
   try {
@@ -13,24 +14,24 @@ export async function POST(request: Request) {
     const buffer = await file.arrayBuffer();
     const base64 = Buffer.from(buffer).toString("base64");
 
-    const model = genAI.getGenerativeModel({ model: "gemini-pro-vision" });
+    const model = genAI.getGenerativeModel({
+      model: MODEL_ID,
+      generationConfig: {
+        responseMimeType: "application/json",
+        responseSchema: schema,
+      },
+    });
 
-    const prompt = `
-      Extract data from this PDF according to the following JSON schema:
-      ${JSON.stringify(schema, null, 2)}
-      
-      Return the data in valid JSON format matching the provided schema.
-      Only respond with the JSON data, no additional text.
-    `;
+    const prompt = "Extract the structured data from the following PDF file";
 
     const result = await model.generateContent([
       prompt,
       {
         inlineData: {
           mimeType: "application/pdf",
-          data: base64
-        }
-      }
+          data: base64,
+        },
+      },
     ]);
 
     const response = await result.response;

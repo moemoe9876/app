@@ -2,14 +2,14 @@
 
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
-import { Textarea } from "@/components/ui/textarea";
 import { Wand2 } from "lucide-react";
-
+import { Textarea } from "@/components/ui/textarea";
 interface PromptInputProps {
   onSubmit: (prompt: string) => void;
+  file: File | null;
 }
 
-export function PromptInput({ onSubmit }: PromptInputProps) {
+export function PromptInput({ onSubmit, file }: PromptInputProps) {
   const [prompt, setPrompt] = useState("");
 
   const handleSubmit = (e: React.FormEvent) => {
@@ -20,13 +20,11 @@ export function PromptInput({ onSubmit }: PromptInputProps) {
   };
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-4">
+    <form onSubmit={handleSubmit} className="space-y-4 rounded-lg">
       <div className="space-y-2">
-        <label htmlFor="prompt" className="text-lg font-medium">
-          What data would you like to extract?
-        </label>
-        <p className="text-sm text-muted-foreground">
-          Describe the structure and type of data you want to extract from the PDF.
+        <p className="text-sm font-medium">
+          Describe the structure and type of data you want to extract from the
+          PDF.
         </p>
       </div>
 
@@ -35,12 +33,15 @@ export function PromptInput({ onSubmit }: PromptInputProps) {
         placeholder="Example: Extract all invoice details including invoice number, date, items, prices, and total amount..."
         value={prompt}
         onChange={(e) => setPrompt(e.target.value)}
-        className="min-h-[150px]"
       />
 
-      <Button type="submit" disabled={!prompt.trim()} className="w-full">
+      <Button
+        type="submit"
+        disabled={!prompt.trim() || file === null}
+        className="w-full"
+      >
         <Wand2 className="w-4 h-4 mr-2" />
-        Generate Structure
+        Extract Data
       </Button>
     </form>
   );
