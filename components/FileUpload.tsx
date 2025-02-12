@@ -4,6 +4,7 @@ import { useCallback, useState } from "react";
 import { useDropzone } from "react-dropzone";
 import { Button } from "./ui/button";
 import { Upload as UploadIcon, File as FileIcon, X } from "lucide-react";
+import PdfViewer from "./PdfViewer";
 
 interface FileUploadProps {
   onFileSelect: (file: File) => void;
@@ -21,21 +22,14 @@ export function formatFileSize(bytes: number): string {
 
 export function FileUpload({ onFileSelect }: FileUploadProps) {
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
-
   const [file, setFile] = useState<File | null>(null);
-
-  const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
-    const selectedFile = event.target.files?.[0];
-    if (selectedFile) {
-      setFile(selectedFile);
-    }
-  };
 
   const onDrop = useCallback(
     (acceptedFiles: File[]) => {
       const file = acceptedFiles[0];
       setSelectedFile(file);
       onFileSelect(file);
+      setFile(file);
     },
     [onFileSelect]
   );
@@ -55,17 +49,17 @@ export function FileUpload({ onFileSelect }: FileUploadProps) {
         <div
           {...getRootProps()}
           className={`min-h-[150px] p-4 rounded-lg
-          ${isDragActive ? "bg-blue-500/15" : "border-border"}
-          transition-colors duration-200 ease-in-out hover:bg-blue-500/15
-          bg-background
+          ${isDragActive ? "bg-secondary/50" : "bg-secondary"}
+          transition-colors duration-200 ease-in-out hover:bg-secondary/50
+          border-2 border-dashed border-secondary
           cursor-pointer flex items-center justify-center gap-4
         `}
         >
           <input {...getInputProps()} />
           <div className="flex flex-row items-center">
-            <UploadIcon className="w-8 h-8 text-blue-500 mr-3 flex-shrink-0" />
+            <UploadIcon className="w-8 h-8 text-primary mr-3 flex-shrink-0" />
             <div className="">
-              <p className="text-sm font-medium">
+              <p className="text-sm font-medium text-foreground">
                 Drop your PDF here or click to browse
               </p>
               <p className="text-xs text-muted-foreground">
@@ -75,14 +69,18 @@ export function FileUpload({ onFileSelect }: FileUploadProps) {
           </div>
         </div>
       ) : (
-        <div className="flex my-auto flex-row items-center p-4 rounded-lg">
-          <FileIcon className="w-8 h-8 text-blue-500 mr-3 flex-shrink-0" />
+        <div className="flex my-auto flex-row items-center p-4 rounded-lg bg-secondary">
+          <FileIcon className="w-8 h-8 text-primary mr-3 flex-shrink-0" />
           <div className="flex-grow min-w-0">
-            <p className="text-sm font-medium truncate">{selectedFile?.name}</p>
+            <p className="text-sm font-medium truncate text-foreground">
+              {selectedFile?.name}
+            </p>
             <p className="text-xs text-muted-foreground">
               {formatFileSize(selectedFile?.size ?? 0)}
             </p>
           </div>
+          {file && <PdfViewer file={file} />}
+
           <Button
             variant="ghost"
             size="icon"

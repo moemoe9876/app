@@ -22,7 +22,7 @@ export function PromptInput({ onSubmit, file }: PromptInputProps) {
   return (
     <form onSubmit={handleSubmit} className="space-y-4 rounded-lg">
       <div className="space-y-2">
-        <p className="text-sm font-medium">
+        <p className="text-sm font-medium text-foreground">
           Describe the structure and type of data you want to extract from the
           PDF.
         </p>
@@ -30,7 +30,7 @@ export function PromptInput({ onSubmit, file }: PromptInputProps) {
 
       <Textarea
         id="prompt"
-        className="focus:border-red"
+        className="min-h-[100px] border-secondary resize-none "
         placeholder="Example: Extract all invoice details including invoice number, date, items, prices, and total amount..."
         value={prompt}
         onChange={(e) => setPrompt(e.target.value)}
@@ -39,7 +39,7 @@ export function PromptInput({ onSubmit, file }: PromptInputProps) {
       <Button
         type="submit"
         disabled={!prompt.trim() || file === null}
-        className="w-full"
+        className="w-full bg-primary hover:bg-primary/90"
       >
         <Wand2 className="w-4 h-4 mr-2" />
         Extract Data
