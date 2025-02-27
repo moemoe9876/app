@@ -12,11 +12,11 @@ This project demonstrates how to extract structured data from PDFs using Google'
 
 ## Features
 
-- 📄 PDF file upload and processing
+- 📄 PDF file upload and preview
 - 🤖 Dynamic JSON schema generation using Gemini 2.0
-- 🔍 Structured data extraction from PDFs
-- ⚡ Real-time processing with Next.js
-- 🎨 Modern UI with responsive design
+- 🔍 Structured Outputs using Gemini 2.0
+- ⚡  Next.js frontend with shadcn/ui
+- 🎨 Uses Gemini 2.0 Javascript SDK
 
 ## Getting Started
 
