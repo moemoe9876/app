@@ -1,36 +1,78 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# PDF to Structured Data with Next.js and Gemini 2.0
+
+This project demonstrates how to extract structured data from PDFs using Google's Gemini 2.0 AI model in a Next.js web application. It allows users to upload PDFs and dynamically generate JSON schemas based on user prompts, which are then used to extract structured information from the documents.
+
+**How It Works:**
+
+1. **Upload PDF**: Users can upload their PDF documents through the web interface
+2. **Define Schema**: Users provide a natural language prompt describing the data they want to extract
+3. **Schema Generation**: Gemini 2.0 generates a JSON schema based on the user's prompt
+4. **Data Extraction**: The Schema is used to extract structured data from the PDF using structured output from Gemini 2.0
+5. **Results**: Extracted data is presented in a clean, organized format
+
+## Features
+
+- 📄 PDF file upload and processing
+- 🤖 Dynamic JSON schema generation using Gemini 2.0
+- 🔍 Structured data extraction from PDFs
+- ⚡ Real-time processing with Next.js
+- 🎨 Modern UI with responsive design
 
 ## Getting Started
 
-First, run the development server:
+### Local Development
+
+First, set up your environment variables:
 
 ```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+cp .env.example .env
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Add your Google AI Studio API key to the `.env` file:
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+```
+GEMINI_API_KEY=your_google_api_key
+```
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+Then, install dependencies and run the development server:
 
-## Learn More
+```bash
+npm install
+npm run dev
+```
 
-To learn more about Next.js, take a look at the following resources:
+Open [http://localhost:3000](http://localhost:3000) with your browser to see the application.
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+### Docker Deployment
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+1. Build the Docker image:
 
-## Deploy on Vercel
+```bash
+docker build -t pdf-structured-data .
+```
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+2. Run the container with your Google API key:
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+```bash
+docker run -p 3000:3000 -e GEMINI_API_KEY=your_google_api_key pdf-structured-data
+```
+
+Or using an environment file:
+
+```bash
+# Run container with env file
+docker run -p 3000:3000 --env-file .env pdf-structured-data
+```
+
+Open [http://localhost:3000](http://localhost:3000) with your browser to see the application.
+
+## Technologies Used
+
+- [Next.js](https://nextjs.org/) - React framework for the web application
+- [Google Gemini 2.0](https://deepmind.google/technologies/gemini/) - AI model for schema generation and data extraction
+- [shadcn/ui](https://ui.shadcn.com/) - Re-usable components built using Radix UI and Tailwind CSS 
+
+
+## License
+
+This project is licensed under the Apache License 2.0 - see the [LICENSE](./LICENSE) file for details.
