@@ -64,15 +64,17 @@ interface PageProps {
 interface FieldData {
   value: string | number;
   confidence: number;
-  location?: {
-    page: number;
-    coordinates?: {
-      x: number;
-      y: number;
-      width: number;
-      height: number;
-    };
+  position?: {
+    page_number: number;
+    bounding_box: [number, number, number, number]; // [x1, y1, x2, y2] as percentages
   };
+}
+
+interface HighlightRect {
+  pageNumber: number;
+  boundingBox: [number, number, number, number];
+  color?: string;
+  id: string;
 }
 
 type ExtractedData = {
@@ -105,6 +107,8 @@ export default function ReviewPage({ params }: PageProps) {
   const [hoveredFieldData, setHoveredFieldData] = useState<any | null>(null);
   const [confidenceThreshold, setConfidenceThreshold] = useState(0);
   const [includeMetadata, setIncludeMetadata] = useState(true);
+  const [currentHighlight, setCurrentHighlight] = useState<HighlightRect | null>(null);
+  const [selectedFieldPath, setSelectedFieldPath] = useState<string | null>(null);
 
   // Listen for sidebar toggle events
   useEffect(() => {
@@ -234,12 +238,118 @@ export default function ReviewPage({ params }: PageProps) {
   };
 
   const handleFieldSelect = (path: string, data: any) => {
+    // Set the selected field path
+    setSelectedFieldPath(path);
+    
+    // If the data has position information, highlight it in the PDF viewer
+    if (data.position) {
+      setCurrentHighlight({
+        pageNumber: data.position.page_number,
+        boundingBox: data.position.bounding_box,
+        id: path,
+        color: '#3b82f6' // Use a different color for selected highlights
+      });
+    }
+    
     // Handle field selection - could be used for editing specific fields
     if (editMode) {
       // Implement field editing logic here
       toast({
         title: "Field Selected",
         description: `Selected field: ${path}`,
+        variant: "default",
+      });
+    }
+  };
+
+  // Handle highlight events from the data visualizer
+  const handleHighlight = (highlight: HighlightRect | null) => {
+    setCurrentHighlight(highlight);
+  };
+
+  // Find a field in the extracted data by its position
+  const findFieldByPosition = (pageNumber: number, position: [number, number]): { path: string; data: FieldData } | null => {
+    const [clickX, clickY] = position;
+    
+    // Helper function to recursively search through the data
+    const searchInObject = (obj: any, path: string): { path: string; data: FieldData } | null => {
+      if (!obj || typeof obj !== 'object') return null;
+      
+      // Check if this is a field with position data
+      if ('value' in obj && 'confidence' in obj && obj.position) {
+        const pos = obj.position;
+        if (pos.page_number === pageNumber) {
+          const [x1, y1, x2, y2] = pos.bounding_box;
+          // Check if the click is within this field's bounding box
+          if (clickX >= x1 && clickX <= x2 && clickY >= y1 && clickY <= y2) {
+            return { path, data: obj };
+          }
+        }
+        return null;
+      }
+      
+      // If it's an array, search through each item
+      if (Array.isArray(obj)) {
+        for (let i = 0; i < obj.length; i++) {
+          const result = searchInObject(obj[i], `${path}[${i}]`);
+          if (result) return result;
+        }
+        return null;
+      }
+      
+      // If it's an object, search through each property
+      for (const key in obj) {
+        const newPath = path ? `${path}.${key}` : key;
+        const result = searchInObject(obj[key], newPath);
+        if (result) return result;
+      }
+      
+      return null;
+    };
+    
+    return searchInObject(extractedData, '');
+  };
+
+  // Handle clicks on the PDF viewer
+  const handlePdfPositionClick = (pageNumber: number, position: [number, number]) => {
+    const field = findFieldByPosition(pageNumber, position);
+    
+    if (field) {
+      // Highlight the field in the data visualizer
+      setSelectedFieldPath(field.path);
+      
+      // Create a highlight for the PDF viewer
+      setCurrentHighlight({
+        pageNumber: pageNumber,
+        boundingBox: field.data.position!.bounding_box,
+        id: field.path,
+        color: '#3b82f6' // Use a different color for clicked highlights
+      });
+      
+      // Scroll the field into view in the data visualizer
+      const fieldElement = document.getElementById(`field-${field.path.replace(/\./g, '-')}`);
+      if (fieldElement) {
+        fieldElement.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        // Add a temporary highlight effect
+        fieldElement.classList.add('bg-primary/20');
+        setTimeout(() => {
+          fieldElement.classList.remove('bg-primary/20');
+        }, 2000);
+      }
+      
+      toast({
+        title: "Field Found",
+        description: `Found field: ${field.path.split('.').pop()?.replace(/_/g, ' ')}`,
+        variant: "default",
+      });
+    } else {
+      // No field found at this position
+      setCurrentHighlight(null);
+      setSelectedFieldPath(null);
+      
+      toast({
+        title: "No Field Found",
+        description: "No data field was found at this position.",
         variant: "default",
       });
     }
@@ -338,9 +448,10 @@ export default function ReviewPage({ params }: PageProps) {
           leftPanel={
             <DataVisualizer
               data={extractedData}
-              onHover={handleFieldHover}
+              onHighlight={handleHighlight}
               onSelect={handleFieldSelect}
               confidenceThreshold={confidenceThreshold}
+              selectedFieldPath={selectedFieldPath}
             />
           }
           rightPanel={
@@ -390,7 +501,8 @@ export default function ReviewPage({ params }: PageProps) {
                     url={pdfUrl} 
                     zoomLevel={zoomLevel}
                     onZoomChange={setZoomLevel}
-                    highlightedField={hoveredFieldData?.location}
+                    highlights={currentHighlight ? [currentHighlight] : []}
+                    onPositionClick={handlePdfPositionClick}
                   />
                 ) : (
                   <div className="flex flex-col items-center justify-center text-center p-6 h-full">

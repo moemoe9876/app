@@ -11,6 +11,7 @@ import { debounce } from "lodash";
 import type { PDFDocumentProxy } from "pdfjs-dist";
 import { Alert, AlertDescription, AlertTitle } from "./ui/alert";
 import { Button } from "./ui/button";
+import { PdfHighlightLayer } from "./PdfHighlightLayer";
 
 pdfjs.GlobalWorkerOptions.workerSrc = new URL(
   "pdfjs-dist/build/pdf.worker.min.mjs",
@@ -32,18 +33,29 @@ interface FieldLocation {
   };
 }
 
+interface HighlightRect {
+  pageNumber: number;
+  boundingBox: [number, number, number, number]; // [x1, y1, x2, y2] as percentages
+  color?: string;
+  id: string;
+}
+
 interface PdfViewerUrlProps {
   url: string;
   zoomLevel?: number;
   onZoomChange?: (zoom: number) => void;
   highlightedField?: FieldLocation;
+  highlights?: HighlightRect[];
+  onPositionClick?: (pageNumber: number, position: [number, number]) => void;
 }
 
 export default function PdfViewerUrl({ 
   url, 
   zoomLevel = 100,
   onZoomChange,
-  highlightedField
+  highlightedField,
+  highlights = [],
+  onPositionClick
 }: PdfViewerUrlProps) {
   const [numPages, setNumPages] = useState<number>();
   const [containerRef, setContainerRef] = useState<HTMLElement | null>(null);
@@ -51,6 +63,8 @@ export default function PdfViewerUrl({
   const [error, setError] = useState<Error | null>(null);
   const [zoom, setZoom] = useState(zoomLevel);
   const [pageRefs, setPageRefs] = useState<(HTMLDivElement | null)[]>([]);
+  const [pageHeights, setPageHeights] = useState<number[]>([]);
+  const [currentPage, setCurrentPage] = useState(1);
 
   // Sync zoom level with parent component
   useEffect(() => {
@@ -145,43 +159,62 @@ export default function PdfViewerUrl({
     );
   }, [numPages, setPageRef]);
 
-  // Render highlight overlay for the field if coordinates are available
-  const renderHighlight = (pageNumber: number) => {
-    if (!highlightedField || highlightedField.page !== pageNumber || !highlightedField.coordinates) {
-      return null;
-    }
-
-    const { x, y, width, height } = highlightedField.coordinates;
-    
-    return (
-      <div 
-        className="absolute bg-yellow-300/30 border-2 border-yellow-500 pointer-events-none transition-all duration-200"
-        style={{
-          left: `${x}px`,
-          top: `${y}px`,
-          width: `${width}px`,
-          height: `${height}px`,
-        }}
-      />
-    );
+  // Update page heights when a page is rendered
+  const handlePageRenderSuccess = (page: any, pageNumber: number) => {
+    setPageHeights(prev => {
+      const newHeights = [...prev];
+      newHeights[pageNumber - 1] = page.height;
+      return newHeights;
+    });
   };
 
   // Scroll to highlighted field
   useEffect(() => {
-    if (highlightedField && highlightedField.page && highlightedField.coordinates) {
-      const pageIndex = highlightedField.page - 1;
-      const pageRef = pageRefs[pageIndex];
-      
-      if (pageRef) {
-        // Scroll the page into view with a small delay to prevent rapid re-renders
-        const timer = setTimeout(() => {
-          pageRef.scrollIntoView({ behavior: 'smooth', block: 'center' });
-        }, 100);
+    if (highlights.length > 0) {
+      const highlight = highlights[0]; // Get the first highlight
+      if (highlight && highlight.pageNumber) {
+        // Set current page to the highlighted page
+        setCurrentPage(highlight.pageNumber);
         
-        return () => clearTimeout(timer);
+        // Scroll the page into view
+        const pageIndex = highlight.pageNumber - 1;
+        const pageRef = pageRefs[pageIndex];
+        
+        if (pageRef) {
+          // Scroll the page into view with a small delay to prevent rapid re-renders
+          const timer = setTimeout(() => {
+            pageRef.scrollIntoView({ behavior: 'smooth', block: 'center' });
+          }, 100);
+          
+          return () => clearTimeout(timer);
+        }
       }
     }
-  }, [highlightedField, pageRefs]);
+  }, [highlights, pageRefs]);
+
+  // Add click handler for the text layer
+  const handleTextLayerClick = (e: React.MouseEvent, pageNumber: number) => {
+    if (!containerRef || !onPositionClick) return;
+    
+    const pageRef = pageRefs[pageNumber - 1];
+    if (!pageRef) return;
+    
+    const pageRect = pageRef.getBoundingClientRect();
+    const scale = zoom / 100;
+    
+    // Calculate click position as percentage of page dimensions
+    const x = ((e.clientX - pageRect.left) / scale / containerWidth!) * 100;
+    const y = ((e.clientY - pageRect.top) / scale / pageHeights[pageNumber - 1]) * 100;
+    
+    // Ensure values are within bounds
+    const boundedX = Math.max(0, Math.min(100, x));
+    const boundedY = Math.max(0, Math.min(100, y));
+    
+    console.log(`Clicked at page ${pageNumber}, position: ${boundedX}%, ${boundedY}%`);
+    
+    // Notify parent component about the click position
+    onPositionClick(pageNumber, [boundedX, boundedY]);
+  };
 
   return (
     <div className="flex flex-col h-full">
@@ -217,20 +250,37 @@ export default function PdfViewerUrl({
               loading={<div className="text-center py-4">Loading PDF...</div>}
             >
               {Array.from(new Array(numPages), (_el, index) => {
+                const pageNumber = index + 1;
                 return (
                   <div 
-                    key={`page_container_${index + 1}`} 
+                    key={`page_container_${pageNumber}`} 
                     className="relative mb-4"
                     ref={refCallbacks[index]}
                   >
                     <Page
-                      key={`page_${index + 1}`}
-                      pageNumber={index + 1}
+                      key={`page_${pageNumber}`}
+                      pageNumber={pageNumber}
                       width={containerWidth}
                       renderTextLayer={true}
                       renderAnnotationLayer={true}
+                      onRenderSuccess={(page) => handlePageRenderSuccess(page, pageNumber)}
                     />
-                    {renderHighlight(index + 1)}
+                    
+                    {/* Add highlight layer for each page */}
+                    <PdfHighlightLayer
+                      highlights={highlights}
+                      currentPage={pageNumber}
+                      containerWidth={containerWidth || 0}
+                      containerHeight={pageHeights[index] || 0}
+                      scale={zoom / 100}
+                    />
+                    
+                    {/* Add a transparent overlay for click handling */}
+                    <div 
+                      className="absolute inset-0 cursor-pointer"
+                      onClick={(e) => handleTextLayerClick(e, pageNumber)}
+                      style={{ pointerEvents: onPositionClick ? 'auto' : 'none' }}
+                    />
                   </div>
                 );
               })}
@@ -238,6 +288,31 @@ export default function PdfViewerUrl({
           </div>
         )}
       </div>
+      
+      {/* Add page navigation controls */}
+      {numPages && numPages > 1 && (
+        <div className="flex items-center justify-between border-t p-2 mt-2">
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => setCurrentPage(Math.max(1, currentPage - 1))}
+            disabled={currentPage === 1}
+          >
+            Previous
+          </Button>
+          <span className="text-sm">
+            Page {currentPage} of {numPages}
+          </span>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => setCurrentPage(Math.min(numPages, currentPage + 1))}
+            disabled={currentPage === numPages}
+          >
+            Next
+          </Button>
+        </div>
+      )}
     </div>
   );
 } 
