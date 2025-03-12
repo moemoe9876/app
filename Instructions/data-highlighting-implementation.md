@@ -13,14 +13,14 @@ This document outlines the detailed implementation plan for adding data highligh
 
 ## Implementation Steps
 
-### 1. Enhance Extraction API to Include Position Data [ ]
+### 1. Enhance Extraction API to Include Position Data [x]
 
 **File:** `/app/api/extract/route.ts` and `/app/api/documents/[id]/route.ts`
 
-- [ ] Modify the extraction prompt to request position information
-- [ ] Update the API response structure to include bounding box coordinates
-- [ ] Add page number references for multi-page documents
-- [ ] Ensure backward compatibility with existing documents
+- [x] Modify the extraction prompt to request position information
+- [x] Update the API response structure to include bounding box coordinates
+- [x] Add page number references for multi-page documents
+- [x] Ensure backward compatibility with existing documents
 
 **Code Changes:**
 ```typescript
@@ -53,14 +53,14 @@ interface FieldData {
 }
 ```
 
-### 2. Create a Highlight Layer Component for PDF Viewer [ ]
+### 2. Create a Highlight Layer Component for PDF Viewer [x]
 
 **File:** `/components/PdfHighlightLayer.tsx` (new file)
 
-- [ ] Implement a transparent overlay for the PDF viewer
-- [ ] Add support for rendering highlight rectangles
-- [ ] Create animations for highlight transitions
-- [ ] Ensure proper scaling with zoom levels
+- [x] Implement a transparent overlay for the PDF viewer
+- [x] Add support for rendering highlight rectangles
+- [x] Create animations for highlight transitions
+- [x] Ensure proper scaling with zoom levels
 
 **Code Structure:**
 ```typescript
@@ -130,14 +130,14 @@ export function PdfHighlightLayer({
 }
 ```
 
-### 3. Enhance PdfViewerUrl Component [ ]
+### 3. Enhance PdfViewerUrl Component [x]
 
 **File:** `/components/PdfViewerUrl.tsx`
 
-- [ ] Integrate the highlight layer with the PDF viewer
-- [ ] Add state management for highlights
-- [ ] Ensure highlights scale properly with zoom
-- [ ] Handle page navigation for multi-page documents
+- [x] Integrate the highlight layer with the PDF viewer
+- [x] Add state management for highlights
+- [x] Ensure highlights scale properly with zoom
+- [x] Handle page navigation for multi-page documents
 
 **Code Changes:**
 ```typescript
@@ -259,14 +259,14 @@ export default function PdfViewerUrl({
 }
 ```
 
-### 4. Create Interactive Data Field Component [ ]
+### 4. Create Interactive Data Field Component [x]
 
 **File:** `/components/InteractiveDataField.tsx` (new file)
 
-- [ ] Build a component for displaying data fields with hover functionality
-- [ ] Add visual indicators for confidence scores
-- [ ] Implement hover state management
-- [ ] Add accessibility features for keyboard navigation
+- [x] Build a component for displaying data fields with hover functionality
+- [x] Add visual indicators for confidence scores
+- [x] Implement hover state management
+- [x] Add accessibility features for keyboard navigation
 
 **Code Structure:**
 ```typescript
@@ -375,14 +375,14 @@ export function InteractiveDataField({
 }
 ```
 
-### 5. Update DataVisualizer Component [ ]
+### 5. Update DataVisualizer Component [x]
 
 **File:** `/components/DataVisualizer.tsx`
 
-- [ ] Integrate the InteractiveDataField component
-- [ ] Implement recursive rendering for nested data structures
-- [ ] Add hover state management for highlighting
-- [ ] Ensure proper data path tracking for complex structures
+- [x] Integrate the InteractiveDataField component
+- [x] Implement recursive rendering for nested data structures
+- [x] Add hover state management for highlighting
+- [x] Ensure proper data path tracking for complex structures
 
 **Code Changes:**
 ```typescript
@@ -492,14 +492,14 @@ export function DataVisualizer({ data, onHighlight, onSelect }: DataVisualizerPr
 }
 ```
 
-### 6. Update Review Page to Connect Components [ ]
+### 6. Update Review Page to Connect Components [x]
 
 **File:** `/app/(dashboard)/dashboard/review/[id]/page.tsx`
 
-- [ ] Add state management for highlights
-- [ ] Connect the DataVisualizer and PdfViewerUrl components
-- [ ] Implement bidirectional highlighting
-- [ ] Add UI controls for highlight customization
+- [x] Add state management for highlights
+- [x] Connect the DataVisualizer and PdfViewerUrl components
+- [x] Implement bidirectional highlighting
+- [x] Add UI controls for highlight customization
 
 **Code Changes:**
 ```typescript
@@ -529,14 +529,14 @@ const handleHighlight = (highlight: HighlightRect | null) => {
 />
 ```
 
-### 7. Add Bidirectional Highlighting [ ]
+### 7. Add Bidirectional Highlighting [x]
 
 **File:** `/components/PdfViewerUrl.tsx`
 
-- [ ] Implement text layer analysis for document positions
-- [ ] Add click handlers on the PDF to highlight corresponding data
-- [ ] Create a mapping system between document positions and data fields
-- [ ] Ensure proper scaling and positioning
+- [x] Implement text layer analysis for document positions
+- [x] Add click handlers on the PDF to highlight corresponding data
+- [x] Create a mapping system between document positions and data fields
+- [x] Ensure proper scaling and positioning
 
 **Code Changes:**
 ```typescript
@@ -603,13 +603,3 @@ const handleTextLayerClick = (e: React.MouseEvent, pageNumber: number) => {
 4. The UI provides clear visual feedback for the highlighting
 5. The feature works with keyboard navigation for accessibility
 
-## Timeline
-
-- Extraction API Enhancements: 1 day
-- PDF Highlight Layer Component: 1 day
-- Interactive Data Field Component: 1 day
-- Integration in Review Page: 1 day
-- Bidirectional Highlighting: 1-2 days
-- Testing and Refinement: 1 day
-
-Total: 6-7 days 

@@ -4,6 +4,17 @@ import { GoogleGenerativeAI } from "@google/generative-ai";
 const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY!);
 const MODEL_ID = "gemini-2.0-flash";
 
+interface PositionData {
+  page_number: number;
+  bounding_box: [number, number, number, number]; // [x1, y1, x2, y2] as percentages
+}
+
+interface FieldData {
+  value: string | number;
+  confidence?: number;
+  position?: PositionData;
+}
+
 interface ExtractionOptions {
   includeConfidence?: boolean;
   includePositions?: boolean;
@@ -81,24 +92,24 @@ export async function POST(request: Request) {
       
       For each piece of information you extract, include:
       ${options.includeConfidence ? "- A confidence score between 0 and 1" : ""}
-      ${options.includePositions ? "- The location in the document (page number, coordinates if possible)" : ""}
+      ${options.includePositions ? "- The location in the document as:\n        - page_number: The page where the information appears (1-indexed)\n        - bounding_box: [x1, y1, x2, y2] coordinates as percentages of page dimensions\n          where (x1,y1) is the top-left corner and (x2,y2) is the bottom-right corner" : ""}
       
       Return the data in valid JSON format with this structure for each field:
       {
         "field_name": {
-          "value": "extracted value"${options.includeConfidence ? ',\n          "confidence": 0.95' : ''}${options.includePositions ? ',\n          "location": {\n            "page": 1,\n            "coordinates": {\n              "x": 100,\n              "y": 200,\n              "width": 300,\n              "height": 50\n            }\n          }' : ''}
+          "value": "extracted value"${options.includeConfidence ? ',\n          "confidence": 0.95' : ''}${options.includePositions ? ',\n          "position": {\n            "page_number": 1,\n            "bounding_box": [10.5, 20.3, 30.2, 25.1]\n          }' : ''}
         },
         // For nested fields
         "section_name": {
           "field1": { 
-            "value": "nested value"${options.includeConfidence ? ',\n            "confidence": 0.9' : ''}${options.includePositions ? ',\n            "location": {\n              "page": 1\n            }' : ''}
+            "value": "nested value"${options.includeConfidence ? ',\n            "confidence": 0.9' : ''}${options.includePositions ? ',\n            "position": {\n              "page_number": 1,\n              "bounding_box": [15.2, 35.7, 45.3, 40.1]\n            }' : ''}
           }
         },
         // For array fields
         "items": [
           {
             "item_field": {
-              "value": "item value"${options.includeConfidence ? ',\n              "confidence": 0.85' : ''}${options.includePositions ? ',\n              "location": {\n                "page": 1\n              }' : ''}
+              "value": "item value"${options.includeConfidence ? ',\n              "confidence": 0.85' : ''}${options.includePositions ? ',\n              "position": {\n                "page_number": 1,\n                "bounding_box": [12.3, 50.6, 42.8, 55.2]\n              }' : ''}
             }
           }
         ]

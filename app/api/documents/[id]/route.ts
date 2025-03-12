@@ -11,18 +11,15 @@ const MODEL_ID = "gemini-2.0-flash";
 const UPLOAD_DIR = join(process.cwd(), "uploads");
 
 // Define types for our data structure
+interface PositionData {
+  page_number: number;
+  bounding_box: [number, number, number, number]; // [x1, y1, x2, y2] as percentages
+}
+
 interface FieldData {
   value: string | number;
   confidence: number;
-  location?: {
-    page: number;
-    coordinates?: {
-      x: number;
-      y: number;
-      width: number;
-      height: number;
-    };
-  };
+  position?: PositionData;
 }
 
 // More flexible data structure that can handle any type of document
@@ -118,29 +115,28 @@ export async function GET(
         Return the data in valid JSON format. For each extracted field, include:
         - The field value
         - A confidence score between 0 and 1
-        - The location in the document (page number, coordinates)
+        - The location in the document as:
+          - page_number: The page where the information appears (1-indexed)
+          - bounding_box: [x1, y1, x2, y2] coordinates as percentages of page dimensions
+            where (x1,y1) is the top-left corner and (x2,y2) is the bottom-right corner
 
         Example format:
         {
           "field_name": {
             "value": "extracted value",
             "confidence": 0.95,
-            "location": {
-              "page": 1,
-              "coordinates": {
-                "x": 100,
-                "y": 200,
-                "width": 300,
-                "height": 50
-              }
+            "position": {
+              "page_number": 1,
+              "bounding_box": [10.5, 20.3, 30.2, 25.1]
             }
           },
           "nested_field": {
             "sub_field": {
               "value": "nested value",
               "confidence": 0.8,
-              "location": {
-                "page": 1
+              "position": {
+                "page_number": 1,
+                "bounding_box": [15.2, 35.7, 45.3, 40.1]
               }
             }
           },
@@ -148,15 +144,17 @@ export async function GET(
             {
               "value": "item 1",
               "confidence": 0.9,
-              "location": {
-                "page": 1
+              "position": {
+                "page_number": 1,
+                "bounding_box": [12.3, 50.6, 42.8, 55.2]
               }
             },
             {
               "value": "item 2",
               "confidence": 0.85,
-              "location": {
-                "page": 1
+              "position": {
+                "page_number": 1,
+                "bounding_box": [22.7, 60.1, 52.9, 65.4]
               }
             }
           ]

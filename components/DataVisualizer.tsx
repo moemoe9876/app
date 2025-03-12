@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useMemo } from "react";
+import React, { useState, useMemo, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
@@ -19,30 +19,33 @@ import {
   CollapsibleContent,
   CollapsibleTrigger,
 } from "@/components/ui/collapsible";
+import { InteractiveDataField } from "./InteractiveDataField";
 
 // Types
+interface PositionData {
+  page_number: number;
+  bounding_box: [number, number, number, number];
+}
+
 interface FieldData {
   value: string | number;
   confidence: number;
-  location?: {
-    page: number;
-    coordinates?: {
-      x: number;
-      y: number;
-      width: number;
-      height: number;
-    };
-  };
+  position?: PositionData;
 }
 
-type ExtractedData = {
-  [key: string]: FieldData | FieldData[] | { [key: string]: any };
-};
+interface HighlightRect {
+  pageNumber: number;
+  boundingBox: [number, number, number, number];
+  color?: string;
+  id: string;
+}
 
 interface DataVisualizerProps {
-  data: ExtractedData;
-  onHover?: (path: string, value: any) => void;
+  data: any;
+  onHighlight?: (highlight: HighlightRect | null) => void;
   onSelect?: (path: string, value: any) => void;
+  className?: string;
+  selectedFieldPath?: string | null;
   confidenceThreshold?: number;
 }
 
@@ -78,7 +81,7 @@ const flattenData = (data: any, prefix = ""): Record<string, any>[] => {
           value: value.value,
           confidence: value.confidence,
           path: currentKey,
-          location: value.location,
+          location: value.position,
         });
       } else if (Array.isArray(value)) {
         // Handle arrays
@@ -110,15 +113,22 @@ const flattenData = (data: any, prefix = ""): Record<string, any>[] => {
 
 export function DataVisualizer({ 
   data, 
-  onHover, 
+  onHighlight, 
   onSelect,
-  confidenceThreshold = 0 
+  className,
+  selectedFieldPath = null,
+  confidenceThreshold = 0
 }: DataVisualizerProps) {
   const [viewMode, setViewMode] = useState<"tree" | "table" | "json">("tree");
   const [searchQuery, setSearchQuery] = useState("");
   const [expandedSections, setExpandedSections] = useState<Set<string>>(new Set());
   const [minConfidence, setMinConfidence] = useState(confidenceThreshold);
   const [showConfidenceFilter, setShowConfidenceFilter] = useState(false);
+
+  // Update minConfidence when confidenceThreshold changes
+  useEffect(() => {
+    setMinConfidence(confidenceThreshold);
+  }, [confidenceThreshold]);
 
   // Filter data based on search query and confidence threshold
   const filteredData = useMemo(() => {
@@ -258,119 +268,105 @@ export function DataVisualizer({
     document.body.removeChild(link);
   };
 
-  // Tree View Renderer
-  const TreeView = () => {
-    const renderTreeNode = (data: any, path = "") => {
-      if (!data) return null;
-      
-      // Handle arrays
-      if (Array.isArray(data)) {
-        return (
-          <div className="space-y-2">
+  // Handle field hover
+  const handleFieldHover = (path: string, position: PositionData | null) => {
+    if (position && onHighlight) {
+      onHighlight({
+        pageNumber: position.page_number,
+        boundingBox: position.bounding_box,
+        id: path,
+      });
+    } else if (onHighlight) {
+      onHighlight(null);
+    }
+  };
+  
+  // Recursive renderer for nested data structures
+  const renderField = (key: string, data: any, path: string) => {
+    if (!data) return null;
+    
+    if (typeof data === 'object' && 'value' in data && 'confidence' in data) {
+      // This is a field with value and confidence
+      return (
+        <InteractiveDataField
+          key={key}
+          label={key.replace(/_/g, " ")}
+          data={data}
+          path={path}
+          onHover={handleFieldHover}
+          onSelect={onSelect}
+          className={path === selectedFieldPath ? "bg-primary/20 border border-primary" : ""}
+        />
+      );
+    }
+    
+    if (Array.isArray(data)) {
+      // Handle array of items
+      return (
+        <div key={key} className="space-y-2">
+          <h3 className="font-medium capitalize">{key.replace(/_/g, " ")}</h3>
+          <div className="pl-4 border-l-2 border-muted space-y-2">
             {data.map((item, index) => (
-              <div key={index} className="pl-4 border-l-2 border-muted">
-                <div className="text-sm font-medium text-muted-foreground mb-1">
-                  Item {index + 1}
-                </div>
-                {renderTreeNode(item, `${path}[${index}]`)}
+              <div key={index} className="space-y-2">
+                {typeof item === 'object' ? (
+                  Object.entries(item).map(([itemKey, itemValue]) => 
+                    renderField(itemKey, itemValue, `${path}.${index}.${itemKey}`)
+                  )
+                ) : (
+                  <div className="flex items-center justify-between p-2">
+                    <span>Item {index + 1}</span>
+                    <span>{String(item)}</span>
+                  </div>
+                )}
               </div>
             ))}
           </div>
-        );
-      }
-      
-      // Handle objects
-      if (typeof data === "object") {
-        // Check if this is a field data object (with value and confidence)
-        if ("value" in data && "confidence" in data) {
-          const fieldData = data as FieldData;
-          return (
-            <div 
-              className="flex items-center gap-2"
-              onMouseEnter={() => onHover && path && onHover(path, fieldData)}
-              onClick={() => onSelect && path && onSelect(path, fieldData)}
-            >
-              <span className="font-medium">{String(fieldData.value)}</span>
-              <Badge 
-                variant="outline" 
-                className={cn("text-xs", getConfidenceColor(fieldData.confidence))}
-              >
-                {Math.round(fieldData.confidence * 100)}%
-              </Badge>
-              {fieldData.location && (
-                <span className="text-xs text-muted-foreground">
-                  Page {fieldData.location.page}
-                </span>
-              )}
-            </div>
-          );
-        }
-        
-        // Regular object with nested properties
-        return (
-          <div className="space-y-2">
-            {Object.entries(data).map(([key, value]) => {
-              const currentPath = path ? `${path}.${key}` : key;
-              const isExpanded = expandedSections.has(currentPath);
-              
-              // Check if value is an object or array that needs collapsible treatment
-              const isComplexValue = value && typeof value === "object";
-              
-              return (
-                <div key={key} className="border-l-2 border-muted pl-4 py-1">
-                  {isComplexValue ? (
-                    <Collapsible open={isExpanded}>
-                      <CollapsibleTrigger 
-                        onClick={() => toggleSection(currentPath)}
-                        className="flex items-center gap-2 hover:bg-muted/50 rounded px-2 py-1 w-full text-left"
-                      >
-                        {isExpanded ? (
-                          <svg className="w-4 h-4 text-muted-foreground" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-                          </svg>
-                        ) : (
-                          <svg className="w-4 h-4 text-muted-foreground" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-                          </svg>
-                        )}
-                        <span className="font-medium">{formatFieldName(key)}</span>
-                      </CollapsibleTrigger>
-                      <CollapsibleContent className="mt-1 ml-6">
-                        {renderTreeNode(value, currentPath)}
-                      </CollapsibleContent>
-                    </Collapsible>
-                  ) : (
-                    <div className="flex items-center justify-between px-2">
-                      <span className="text-sm font-medium">{formatFieldName(key)}:</span>
-                      <span className="text-sm">{String(value)}</span>
-                    </div>
-                  )}
-                </div>
-              );
-            })}
+        </div>
+      );
+    }
+    
+    if (typeof data === 'object') {
+      // Handle nested objects
+      return (
+        <div key={key} className="space-y-2">
+          <h3 className="font-medium capitalize">{key.replace(/_/g, " ")}</h3>
+          <div className="pl-4 border-l-2 border-muted space-y-2">
+            {Object.entries(data).map(([nestedKey, nestedValue]) => 
+              renderField(nestedKey, nestedValue, `${path}.${nestedKey}`)
+            )}
           </div>
-        );
-      }
-      
-      // Primitive values
-      return <span>{String(data)}</span>;
-    };
-
+        </div>
+      );
+    }
+    
+    // Handle primitive values
+    return (
+      <div key={key} className="flex items-center justify-between p-2">
+        <span className="font-medium capitalize">{key.replace(/_/g, " ")}:</span>
+        <span>{String(data)}</span>
+      </div>
+    );
+  };
+  
+  // Render tree view
+  const renderTreeView = () => {
     return (
       <div className="space-y-4">
-        {Object.keys(filteredData).length === 0 ? (
+        {Object.entries(filteredData).length === 0 ? (
           <div className="text-center py-8 text-muted-foreground">
             {searchQuery || minConfidence > 0 ? "No results match your filters" : "No data available"}
           </div>
         ) : (
-          renderTreeNode(filteredData)
+          Object.entries(filteredData).map(([key, value]) => 
+            renderField(key, value, key)
+          )
         )}
       </div>
     );
   };
-
-  // Table View Renderer
-  const TableView = () => {
+  
+  // Render table view
+  const renderTableView = () => {
     const flatData = useMemo(() => flattenData(filteredData), [filteredData]);
 
     if (flatData.length === 0) {
@@ -395,8 +391,16 @@ export function DataVisualizer({
           {flatData.map((item, index) => (
             <TableRow 
               key={index}
-              className="cursor-pointer hover:bg-muted/50"
-              onMouseEnter={() => onHover && item.path && onHover(item.path, item)}
+              className={cn(
+                "cursor-pointer hover:bg-muted/50",
+                item.path === selectedFieldPath ? "bg-primary/20" : ""
+              )}
+              id={`field-${item.path?.replace(/\./g, '-')}`}
+              onMouseEnter={() => onHighlight && item.location && onHighlight({
+                pageNumber: item.location.page_number,
+                boundingBox: item.location.bounding_box,
+                id: item.path,
+              })}
               onClick={() => onSelect && item.path && onSelect(item.path, item)}
             >
               <TableCell className="font-medium">{item.field}</TableCell>
@@ -410,7 +414,7 @@ export function DataVisualizer({
                 </Badge>
               </TableCell>
               <TableCell>
-                {item.location?.page ? `Page ${item.location.page}` : "-"}
+                {item.location?.page_number ? `Page ${item.location.page_number}` : "-"}
               </TableCell>
             </TableRow>
           ))}
@@ -418,9 +422,9 @@ export function DataVisualizer({
       </Table>
     );
   };
-
-  // JSON View Renderer
-  const JsonView = () => {
+  
+  // Render JSON view
+  const renderJsonView = () => {
     return (
       <pre className="overflow-auto text-xs p-4 bg-muted/50 rounded-md">
         <code>{JSON.stringify(filteredData, null, 2)}</code>
@@ -429,7 +433,7 @@ export function DataVisualizer({
   };
 
   return (
-    <Card className="h-full flex flex-col">
+    <Card className={cn("h-full flex flex-col", className)}>
       <CardHeader className="pb-2">
         <div className="flex items-center justify-between">
           <CardTitle>Extracted Data</CardTitle>
@@ -550,9 +554,9 @@ export function DataVisualizer({
         </Popover>
       </div>
       <CardContent className="flex-1 overflow-auto pt-2">
-        {viewMode === "tree" && <TreeView />}
-        {viewMode === "table" && <TableView />}
-        {viewMode === "json" && <JsonView />}
+        {viewMode === "tree" && renderTreeView()}
+        {viewMode === "table" && renderTableView()}
+        {viewMode === "json" && renderJsonView()}
       </CardContent>
       <div className="p-2 border-t flex items-center gap-2 text-xs text-muted-foreground">
         <span>Confidence:</span>
