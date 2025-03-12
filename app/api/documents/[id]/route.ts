@@ -4,7 +4,9 @@ import { join } from "path";
 import { GoogleGenerativeAI } from "@google/generative-ai";
 import { existsSync } from "fs";
 
-const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY!);
+// Check if API key exists before initializing
+const apiKey = process.env.GEMINI_API_KEY;
+const genAI = apiKey ? new GoogleGenerativeAI(apiKey) : null;
 const MODEL_ID = "gemini-2.0-flash";
 
 // This is a temporary solution for demo purposes
@@ -90,6 +92,22 @@ export async function GET(
       if (existsSync(promptPath)) {
         const promptBuffer = await readFile(promptPath);
         customPrompt = promptBuffer.toString();
+      }
+      
+      // Check if API key is configured
+      if (!process.env.GEMINI_API_KEY) {
+        return NextResponse.json(
+          { error: "Gemini API key is not configured. Please add a valid API key to your .env.local file." },
+          { status: 500 }
+        );
+      }
+
+      // Check if genAI is properly initialized
+      if (!genAI) {
+        return NextResponse.json(
+          { error: "Failed to initialize Gemini AI client. Please check your API key." },
+          { status: 500 }
+        );
       }
       
       // Use Gemini API to extract data
@@ -214,7 +232,7 @@ export async function GET(
       } catch (error) {
         console.error("Error generating content:", error);
         return NextResponse.json(
-          { error: "Failed to extract data from document" },
+          { error: "Failed to extract data from document", details: error.message || "Unknown error" },
           { status: 500 }
         );
       }
@@ -227,9 +245,9 @@ export async function GET(
       metadata: extractionMetadata
     });
   } catch (error) {
-    console.error("Error fetching document:", error);
+    console.error("Error processing request:", error);
     return NextResponse.json(
-      { error: "Failed to fetch document" },
+      { error: "Failed to extract data from document" },
       { status: 500 }
     );
   }
