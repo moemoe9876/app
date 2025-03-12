@@ -4,11 +4,32 @@ import { GoogleGenerativeAI } from "@google/generative-ai";
 const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY!);
 const MODEL_ID = "gemini-2.0-flash";
 
+interface ExtractionOptions {
+  includeConfidence?: boolean;
+  includePositions?: boolean;
+  detectDocumentType?: boolean;
+  temperature?: number;
+}
+
 export async function POST(request: Request) {
   try {
     const formData = await request.formData();
     const file = formData.get("file") as File;
-    const schema = JSON.parse(formData.get("schema") as string);
+    const extractionPrompt = formData.get("extractionPrompt") as string;
+    const optionsJson = formData.get("options") as string;
+    
+    // Parse options with defaults
+    const options: ExtractionOptions = optionsJson 
+      ? JSON.parse(optionsJson) 
+      : {
+          includeConfidence: true,
+          includePositions: true,
+          detectDocumentType: true,
+          temperature: 0.1
+        };
+    
+    // Start timing for performance metrics
+    const startTime = Date.now();
 
     // Convert PDF to base64
     const buffer = await file.arrayBuffer();
@@ -17,15 +38,78 @@ export async function POST(request: Request) {
     const model = genAI.getGenerativeModel({
       model: MODEL_ID,
       generationConfig: {
-        responseMimeType: "application/json",
-        responseSchema: schema,
+        temperature: options.temperature ?? 0.1,
+        maxOutputTokens: 4096, // Increased for more detailed extraction
       },
     });
 
-    const prompt = "Extract the structured data from the following PDF file";
+    // Build a more flexible and comprehensive prompt
+    let prompt = "";
+    
+    // First phase: Document type detection (if enabled)
+    let documentType = null;
+    if (options.detectDocumentType) {
+      const detectionPrompt = `
+        Analyze this document and determine its type (e.g., invoice, receipt, contract, resume, etc.).
+        Return only the document type as a single word or short phrase, without any additional text.
+      `;
+      
+      try {
+        const detectionResult = await model.generateContent([
+          { text: detectionPrompt },
+          {
+            inlineData: {
+              mimeType: "application/pdf",
+              data: base64,
+            },
+          },
+        ]);
+        
+        documentType = detectionResult.response.text().trim();
+        console.log(`Detected document type: ${documentType}`);
+      } catch (error) {
+        console.error("Error detecting document type:", error);
+        // Continue with extraction even if type detection fails
+      }
+    }
+    
+    // Build the main extraction prompt
+    prompt = `
+      Extract structured data from the following document${documentType ? ` (detected as: ${documentType})` : ''}.
+      
+      ${extractionPrompt || "Extract all relevant information from this document."}
+      
+      For each piece of information you extract, include:
+      ${options.includeConfidence ? "- A confidence score between 0 and 1" : ""}
+      ${options.includePositions ? "- The location in the document (page number, coordinates if possible)" : ""}
+      
+      Return the data in valid JSON format with this structure for each field:
+      {
+        "field_name": {
+          "value": "extracted value"${options.includeConfidence ? ',\n          "confidence": 0.95' : ''}${options.includePositions ? ',\n          "location": {\n            "page": 1,\n            "coordinates": {\n              "x": 100,\n              "y": 200,\n              "width": 300,\n              "height": 50\n            }\n          }' : ''}
+        },
+        // For nested fields
+        "section_name": {
+          "field1": { 
+            "value": "nested value"${options.includeConfidence ? ',\n            "confidence": 0.9' : ''}${options.includePositions ? ',\n            "location": {\n              "page": 1\n            }' : ''}
+          }
+        },
+        // For array fields
+        "items": [
+          {
+            "item_field": {
+              "value": "item value"${options.includeConfidence ? ',\n              "confidence": 0.85' : ''}${options.includePositions ? ',\n              "location": {\n                "page": 1\n              }' : ''}
+            }
+          }
+        ]
+      }
+      
+      Return the data in valid JSON format without any markdown code block markers.
+    `;
 
+    // Execute the extraction
     const result = await model.generateContent([
-      prompt,
+      { text: prompt },
       {
         inlineData: {
           mimeType: "application/pdf",
@@ -35,13 +119,45 @@ export async function POST(request: Request) {
     ]);
 
     const response = await result.response;
-    const extractedData = JSON.parse(response.text());
+    
+    // Clean up the response text by removing markdown code block markers
+    const cleanText = response.text()
+      .replace(/^```json\s*/, '')  // Remove opening ```json
+      .replace(/^```\s*/, '')      // Remove opening ``` without json
+      .replace(/```\s*$/, '')      // Remove closing ```
+      .trim();                     // Remove any extra whitespace
 
-    return NextResponse.json(extractedData);
+    try {
+      const extractedData = JSON.parse(cleanText);
+      
+      // Create metadata about the extraction process
+      const metadata = {
+        timestamp: new Date().toISOString(),
+        model: MODEL_ID,
+        documentType: documentType,
+        prompt: extractionPrompt || "General extraction",
+        processingTimeMs: Date.now() - startTime,
+        options
+      };
+      
+      return NextResponse.json({
+        data: extractedData,
+        metadata
+      });
+    } catch (parseError) {
+      console.error("Error parsing extracted data:", parseError);
+      return NextResponse.json(
+        { 
+          error: "Failed to parse extracted data",
+          rawResponse: cleanText 
+        },
+        { status: 500 }
+      );
+    }
   } catch (error) {
     console.error("Error extracting data:", error);
     return NextResponse.json(
-      { error: "Failed to extract data" },
+      { error: "Failed to extract data", details: (error as Error).message },
       { status: 500 }
     );
   }
