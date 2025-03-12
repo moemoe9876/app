@@ -5,6 +5,7 @@ import { pdfjs, Document, Page } from "react-pdf";
 import "react-pdf/dist/esm/Page/AnnotationLayer.css";
 import "react-pdf/dist/esm/Page/TextLayer.css";
 import { useResizeObserver } from "@wojtekmaj/react-hooks";
+import { AlertCircle } from "lucide-react";
 
 import type { PDFDocumentProxy } from "pdfjs-dist";
 import {
@@ -14,6 +15,7 @@ import {
   SheetTitle,
   SheetTrigger,
 } from "./ui/sheet";
+import { Alert, AlertDescription, AlertTitle } from "./ui/alert";
 
 pdfjs.GlobalWorkerOptions.workerSrc = new URL(
   "pdfjs-dist/build/pdf.worker.min.mjs",
@@ -29,6 +31,7 @@ export default function PdfViewer({ file }: { file: File }) {
   const [numPages, setNumPages] = useState<number>();
   const [containerRef, setContainerRef] = useState<HTMLElement | null>(null);
   const [containerWidth, setContainerWidth] = useState<number>();
+  const [error, setError] = useState<Error | null>(null);
 
   // Add resize observer
   const onResize = useCallback<ResizeObserverCallback>((entries) => {
@@ -41,7 +44,13 @@ export default function PdfViewer({ file }: { file: File }) {
   useResizeObserver(containerRef, {}, onResize);
 
   async function onDocumentLoadSuccess(page: PDFDocumentProxy): Promise<void> {
+    setError(null);
     setNumPages(page._pdfInfo.numPages);
+  }
+
+  function onDocumentLoadError(err: Error): void {
+    console.error("Error loading PDF:", err);
+    setError(err);
   }
 
   return (
@@ -57,19 +66,33 @@ export default function PdfViewer({ file }: { file: File }) {
           ref={setContainerRef}
           className="max-w-2xl mx-auto mt-2 max-h-[calc(100vh-10rem)] overflow-y-auto"
         >
-          <Document
-            file={file}
-            onLoadSuccess={onDocumentLoadSuccess}
-            options={options}
-          >
-            {Array.from(new Array(numPages), (_el, index) => (
-              <Page
-                key={`page_${index + 1}`}
-                pageNumber={index + 1}
-                width={containerWidth}
-              />
-            ))}
-          </Document>
+          {error ? (
+            <Alert variant="destructive" className="mb-4">
+              <AlertCircle className="h-4 w-4" />
+              <AlertTitle>Error</AlertTitle>
+              <AlertDescription>
+                Failed to load PDF document. {error.message}
+              </AlertDescription>
+            </Alert>
+          ) : (
+            <Document
+              file={file}
+              onLoadSuccess={onDocumentLoadSuccess}
+              onLoadError={onDocumentLoadError}
+              options={options}
+              loading={<div className="text-center py-4">Loading PDF...</div>}
+            >
+              {Array.from(new Array(numPages), (_el, index) => (
+                <Page
+                  key={`page_${index + 1}`}
+                  pageNumber={index + 1}
+                  width={containerWidth}
+                  renderTextLayer={true}
+                  renderAnnotationLayer={true}
+                />
+              ))}
+            </Document>
+          )}
         </div>
       </SheetContent>
     </Sheet>
