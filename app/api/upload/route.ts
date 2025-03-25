@@ -8,6 +8,13 @@ import { mkdir } from "fs/promises";
 // In a production environment, you would use a proper storage solution like Firebase Storage
 const UPLOAD_DIR = join(process.cwd(), "uploads");
 
+interface ExtractionOptions {
+  includeConfidence: boolean;
+  includePositions: boolean;
+  detectDocumentType: boolean;
+  temperature: number;
+}
+
 export async function POST(request: Request) {
   try {
     // Ensure the upload directory exists
@@ -19,7 +26,28 @@ export async function POST(request: Request) {
 
     const formData = await request.formData();
     const file = formData.get("file") as File;
+    const fileId = formData.get("fileId") as string || uuidv4();
     const extractionPrompt = formData.get("extractionPrompt") as string || "";
+    
+    console.log("Upload API - File ID:", fileId);
+    
+    // Get extraction options or use defaults
+    let extractionOptions: ExtractionOptions = {
+      includeConfidence: true,
+      includePositions: false,
+      detectDocumentType: true,
+      temperature: 0.1
+    };
+    
+    // Parse options if provided
+    const optionsJson = formData.get("options") as string;
+    if (optionsJson) {
+      try {
+        extractionOptions = { ...extractionOptions, ...JSON.parse(optionsJson) };
+      } catch (error) {
+        console.error("Error parsing extraction options:", error);
+      }
+    }
     
     if (!file) {
       return NextResponse.json(
@@ -42,10 +70,16 @@ export async function POST(request: Request) {
     await writeFile(filePath, buffer);
     
     // Save the extraction prompt if provided
-    if (extractionPrompt) {
+    if (extractionPrompt && extractionPrompt.trim()) {
       const promptPath = join(documentDir, "extraction_prompt.txt");
       await writeFile(promptPath, extractionPrompt);
+      console.log("Upload API - Saved extraction prompt to file:", promptPath);
     }
+    
+    // Save extraction options
+    const optionsPath = join(documentDir, "extraction_options.json");
+    await writeFile(optionsPath, JSON.stringify(extractionOptions, null, 2));
+    console.log("Upload API - Saved extraction options to file:", optionsPath);
     
     // In a real application, you would also store metadata in a database
     // For now, we'll just return the document ID

@@ -5,12 +5,18 @@ import { useDropzone } from "react-dropzone";
 import { Button } from "./ui/button";
 import { Upload as UploadIcon, File as FileIcon, X } from "lucide-react";
 import PdfViewer from "./PdfViewer";
-import { Textarea } from "./ui/textarea";
-import { Label } from "./ui/label";
+import { PromptInput } from "./PromptInput";
+
+interface ExtractionOptions {
+  includeConfidence: boolean;
+  includePositions: boolean;
+  detectDocumentType: boolean;
+  temperature: number;
+}
 
 interface FileUploadProps {
   onFileSelect: (file: File) => void;
-  onPromptChange?: (prompt: string) => void;
+  onPromptChange?: (prompt: string, options: ExtractionOptions) => void;
   initialPrompt?: string;
 }
 
@@ -27,7 +33,6 @@ export function formatFileSize(bytes: number): string {
 export function FileUpload({ onFileSelect, onPromptChange, initialPrompt = "" }: FileUploadProps) {
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [file, setFile] = useState<File | null>(null);
-  const [prompt, setPrompt] = useState(initialPrompt);
 
   const onDrop = useCallback(
     (acceptedFiles: File[]) => {
@@ -39,11 +44,9 @@ export function FileUpload({ onFileSelect, onPromptChange, initialPrompt = "" }:
     [onFileSelect]
   );
 
-  const handlePromptChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
-    const newPrompt = e.target.value;
-    setPrompt(newPrompt);
+  const handlePromptSubmit = (prompt: string, options: ExtractionOptions) => {
     if (onPromptChange) {
-      onPromptChange(newPrompt);
+      onPromptChange(prompt, options);
     }
   };
 
@@ -108,24 +111,10 @@ export function FileUpload({ onFileSelect, onPromptChange, initialPrompt = "" }:
         )}
       </div>
 
-      <div className="space-y-3 pt-1">
-        <Label htmlFor="extraction-prompt" className="text-sm font-medium text-muted-foreground mb-2 block">
-          Extraction Instructions
-        </Label>
-        <Textarea
-          id="extraction-prompt"
-          placeholder="Describe what data you want to extract from this document (e.g., 'Extract invoice number, date, vendor name, line items, and total amount')"
-          value={prompt}
-          onChange={handlePromptChange}
-          className="min-h-[100px] mt-1 pt-3"
-        />
-        <p className="text-sm text-muted-foreground/80 mt-2 flex items-center">
-          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="w-4 h-4 mr-1 text-muted-foreground">
-            <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a.75.75 0 000 1.5h.253a.25.25 0 01.244.304l-.459 2.066A1.75 1.75 0 0010.747 15H11a.75.75 0 000-1.5h-.253a.25.25 0 01-.244-.304l.459-2.066A1.75 1.75 0 009.253 9H9z" clipRule="evenodd" />
-          </svg>
-          Provide specific instructions to improve extraction accuracy
-        </p>
-      </div>
+      <PromptInput 
+        file={selectedFile} 
+        onSubmit={handlePromptSubmit} 
+      />
     </div>
   );
 }

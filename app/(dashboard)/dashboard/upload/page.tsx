@@ -18,10 +18,23 @@ enum UploadStage {
   ERROR = "error"
 }
 
+interface ExtractionOptions {
+  includeConfidence: boolean;
+  includePositions: boolean;
+  detectDocumentType: boolean;
+  temperature: number;
+}
+
 export default function UploadPage() {
   const router = useRouter();
   const [file, setFile] = useState<File | null>(null);
   const [extractionPrompt, setExtractionPrompt] = useState<string>("");
+  const [extractionOptions, setExtractionOptions] = useState<ExtractionOptions>({
+    includeConfidence: true,
+    includePositions: false,
+    detectDocumentType: true,
+    temperature: 0.1
+  });
   const [loading, setLoading] = useState(false);
   const [uploadStage, setUploadStage] = useState<UploadStage>(UploadStage.UPLOAD);
   const [progress, setProgress] = useState(0);
@@ -32,8 +45,9 @@ export default function UploadPage() {
     setFile(selectedFile);
   };
 
-  const handlePromptChange = (prompt: string) => {
+  const handlePromptChange = (prompt: string, options: ExtractionOptions) => {
     setExtractionPrompt(prompt);
+    setExtractionOptions(options);
   };
 
   // Simulate progress updates during processing
@@ -88,6 +102,9 @@ export default function UploadPage() {
       if (extractionPrompt) {
         formData.append("extractionPrompt", extractionPrompt);
       }
+      
+      // Add extraction options
+      formData.append("options", JSON.stringify(extractionOptions));
       
       // Upload the file to the server
       const uploadResponse = await fetch("/api/upload", {
@@ -165,7 +182,7 @@ export default function UploadPage() {
             ) : (
               <>
                 <Upload className="mr-2 h-4 w-4" />
-                Upload Document
+                Extract Data
               </>
             )}
           </Button>

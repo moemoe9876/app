@@ -1,0 +1,6 @@
+{
+  "includeConfidence": true,
+  "includePositions": false,
+  "detectDocumentType": true,
+  "temperature": 0
+}

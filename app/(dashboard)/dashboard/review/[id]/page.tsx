@@ -86,6 +86,9 @@ interface ExtractionMetadata {
   model: string;
   prompt: string;
   processingTimeMs: number;
+  options?: {
+    includePositions?: boolean;
+  };
 }
 
 export default function ReviewPage({ params }: PageProps) {
@@ -137,6 +140,11 @@ export default function ReviewPage({ params }: PageProps) {
     const fetchDocumentData = async () => {
       try {
         setIsLoading(true);
+        
+        if (!documentId) {
+          throw new Error("Invalid document ID");
+        }
+        
         const response = await fetch(`/api/documents/${documentId}`);
         
         if (!response.ok) {
@@ -144,6 +152,11 @@ export default function ReviewPage({ params }: PageProps) {
         }
         
         const data = await response.json();
+        
+        if (!data || !data.extractedData) {
+          throw new Error("No extracted data found");
+        }
+        
         setExtractedData(data.extractedData);
         setExtractionMetadata(data.metadata);
         setFileName(data.fileName);
@@ -242,7 +255,7 @@ export default function ReviewPage({ params }: PageProps) {
     setSelectedFieldPath(path);
     
     // If the data has position information, highlight it in the PDF viewer
-    if (data.position) {
+    if (data.position && extractionMetadata?.options?.includePositions !== false) {
       setCurrentHighlight({
         pageNumber: data.position.page_number,
         boundingBox: data.position.bounding_box,
@@ -264,11 +277,19 @@ export default function ReviewPage({ params }: PageProps) {
 
   // Handle highlight events from the data visualizer
   const handleHighlight = (highlight: HighlightRect | null) => {
-    setCurrentHighlight(highlight);
+    // Only set the highlight if position data is available (based on extraction options)
+    if (highlight || extractionMetadata?.options?.includePositions !== false) {
+      setCurrentHighlight(highlight);
+    }
   };
 
   // Find a field in the extracted data by its position
   const findFieldByPosition = (pageNumber: number, position: [number, number]): { path: string; data: FieldData } | null => {
+    // If position data is not included in extraction, don't attempt to find fields by position
+    if (extractionMetadata?.options?.includePositions === false) {
+      return null;
+    }
+    
     const [clickX, clickY] = position;
     
     // Helper function to recursively search through the data
@@ -455,6 +476,9 @@ export default function ReviewPage({ params }: PageProps) {
               onSelect={handleFieldSelect}
               confidenceThreshold={confidenceThreshold}
               selectedFieldPath={selectedFieldPath}
+              options={{
+                includePositions: extractionMetadata?.options?.includePositions !== false
+              }}
             />
           }
           rightPanel={
@@ -490,6 +514,18 @@ export default function ReviewPage({ params }: PageProps) {
                               <span>Timestamp:</span>
                               <span className="font-medium">{new Date(extractionMetadata.timestamp).toLocaleString()}</span>
                             </div>
+                            {extractionMetadata.options && (
+                              <>
+                                <div className="flex justify-between mt-2">
+                                  <span>Position Data:</span>
+                                  <span className="font-medium">{extractionMetadata.options.includePositions ? "Enabled" : "Disabled"}</span>
+                                </div>
+                                <div className="flex justify-between">
+                                  <span>Confidence Scores:</span>
+                                  <span className="font-medium">{extractionMetadata.options.includeConfidence !== false ? "Enabled" : "Disabled"}</span>
+                                </div>
+                              </>
+                            )}
                           </div>
                         </div>
                       </TooltipContent>

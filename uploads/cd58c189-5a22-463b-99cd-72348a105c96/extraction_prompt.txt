@@ -1,0 +1,3 @@
+Extract only the name of the sender and recipient from this email
+- Extract just the invoice number, date, and total amount
+- Extract only the shipping address and order number from this receipt

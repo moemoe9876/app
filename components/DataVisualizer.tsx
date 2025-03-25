@@ -47,6 +47,9 @@ interface DataVisualizerProps {
   className?: string;
   selectedFieldPath?: string | null;
   confidenceThreshold?: number;
+  options?: {
+    includePositions?: boolean;
+  };
 }
 
 // Helper functions
@@ -81,7 +84,7 @@ const flattenData = (data: any, prefix = ""): Record<string, any>[] => {
           value: value.value,
           confidence: value.confidence,
           path: currentKey,
-          location: value.position,
+          location: (value as FieldData).position,
         });
       } else if (Array.isArray(value)) {
         // Handle arrays
@@ -117,7 +120,8 @@ export function DataVisualizer({
   onSelect,
   className,
   selectedFieldPath = null,
-  confidenceThreshold = 0
+  confidenceThreshold = 0,
+  options = { includePositions: true }
 }: DataVisualizerProps) {
   const [viewMode, setViewMode] = useState<"tree" | "table" | "json">("tree");
   const [searchQuery, setSearchQuery] = useState("");
@@ -295,6 +299,7 @@ export function DataVisualizer({
           path={path}
           onHover={handleFieldHover}
           onSelect={onSelect}
+          showPositionInfo={options.includePositions !== false}
           className={path === selectedFieldPath ? "bg-primary/20 border border-primary" : ""}
         />
       );
@@ -384,7 +389,7 @@ export function DataVisualizer({
             <TableHead>Field</TableHead>
             <TableHead>Value</TableHead>
             <TableHead>Confidence</TableHead>
-            <TableHead>Page</TableHead>
+            {options.includePositions !== false && <TableHead>Page</TableHead>}
           </TableRow>
         </TableHeader>
         <TableBody>
@@ -413,9 +418,11 @@ export function DataVisualizer({
                   {Math.round(item.confidence * 100)}%
                 </Badge>
               </TableCell>
-              <TableCell>
-                {item.location?.page_number ? `Page ${item.location.page_number}` : "-"}
-              </TableCell>
+              {options.includePositions !== false && (
+                <TableCell>
+                  {item.location?.page_number ? `Page ${item.location.page_number}` : "-"}
+                </TableCell>
+              )}
             </TableRow>
           ))}
         </TableBody>

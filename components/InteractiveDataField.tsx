@@ -19,6 +19,7 @@ interface InteractiveDataFieldProps {
   onHover?: (path: string, position: PositionData | null) => void;
   onSelect?: (path: string, data: FieldData) => void;
   className?: string;
+  showPositionInfo?: boolean;
 }
 
 export function InteractiveDataField({
@@ -28,6 +29,7 @@ export function InteractiveDataField({
   onHover,
   onSelect,
   className,
+  showPositionInfo = true,
 }: InteractiveDataFieldProps) {
   const [isHovered, setIsHovered] = useState(false);
   
@@ -58,13 +60,15 @@ export function InteractiveDataField({
     return "bg-red-500";
   };
   
+  const hasPosition = Boolean(data.position);
+  
   return (
     <div
       id={`field-${path.replace(/\./g, '-')}`}
       className={cn(
         "group flex items-center justify-between p-2 rounded-md transition-colors",
         isHovered ? "bg-accent" : "hover:bg-accent/50",
-        data.position ? "cursor-pointer" : "cursor-default",
+        hasPosition ? "cursor-pointer" : "cursor-default",
         className
       )}
       onMouseEnter={handleMouseEnter}
@@ -91,7 +95,7 @@ export function InteractiveDataField({
       </div>
       <div className="flex items-center gap-2">
         <span>{String(data.value)}</span>
-        {data.position && (
+        {showPositionInfo && data.position && (
           <div className="opacity-0 group-hover:opacity-100 transition-opacity">
             <span className="text-xs text-muted-foreground">
               (Page {data.position.page_number})
