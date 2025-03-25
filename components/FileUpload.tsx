@@ -5,18 +5,13 @@ import { useDropzone } from "react-dropzone";
 import { Button } from "./ui/button";
 import { Upload as UploadIcon, File as FileIcon, X } from "lucide-react";
 import PdfViewer from "./PdfViewer";
-import { PromptInput } from "./PromptInput";
-
-interface ExtractionOptions {
-  includeConfidence: boolean;
-  includePositions: boolean;
-  detectDocumentType: boolean;
-  temperature: number;
-}
+import { Textarea } from "./ui/textarea";
+import { Label } from "./ui/label";
+import { cn } from "@/lib/utils";
 
 interface FileUploadProps {
   onFileSelect: (file: File) => void;
-  onPromptChange?: (prompt: string, options: ExtractionOptions) => void;
+  onPromptChange?: (prompt: string, options?: any) => void;
   initialPrompt?: string;
 }
 
@@ -33,6 +28,7 @@ export function formatFileSize(bytes: number): string {
 export function FileUpload({ onFileSelect, onPromptChange, initialPrompt = "" }: FileUploadProps) {
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [file, setFile] = useState<File | null>(null);
+  const [prompt, setPrompt] = useState(initialPrompt);
 
   const onDrop = useCallback(
     (acceptedFiles: File[]) => {
@@ -44,16 +40,20 @@ export function FileUpload({ onFileSelect, onPromptChange, initialPrompt = "" }:
     [onFileSelect]
   );
 
-  const handlePromptSubmit = (prompt: string, options: ExtractionOptions) => {
+  const handlePromptChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
+    const newPrompt = e.target.value;
+    setPrompt(newPrompt);
     if (onPromptChange) {
-      onPromptChange(prompt, options);
+      onPromptChange(newPrompt, {});
     }
   };
 
-  const { getRootProps, getInputProps, isDragActive } = useDropzone({
+  const { getRootProps, getInputProps, isDragActive, isDragAccept, isDragReject } = useDropzone({
     onDrop,
     accept: {
       "application/pdf": [".pdf"],
+      "image/png": [".png"],
+      "image/jpeg": [".jpg", ".jpeg"],
     },
     maxSize: 100 * 1024 * 1024, // 100MB
     multiple: false,
@@ -61,60 +61,107 @@ export function FileUpload({ onFileSelect, onPromptChange, initialPrompt = "" }:
 
   return (
     <div className="w-full space-y-6">
-      <div className={`min-h-[150px] mb-7`}>
+      <div className="file-upload-container min-h-[180px]">
         {!selectedFile ? (
           <div
             {...getRootProps()}
-            className={`min-h-[170px] p-6 rounded-lg
-            ${isDragActive ? "bg-secondary/50" : "bg-secondary"}
-            transition-colors duration-200 ease-in-out hover:bg-secondary/50
-            border-2 border-dashed border-secondary
-            cursor-pointer flex items-center justify-center gap-4
-          `}
+            className={cn(
+              "min-h-[180px] p-6 rounded-lg",
+              "transition-all duration-200 ease-in-out",
+              "border-2 border-dashed cursor-pointer",
+              "flex flex-col items-center justify-center gap-4",
+              isDragActive ? "border-primary bg-primary/5 scale-[1.02]" : "border-muted-foreground/30 bg-secondary/30 hover:bg-secondary/50 hover:border-primary/50",
+              isDragAccept && "border-green-500 bg-green-50 dark:bg-green-950/20",
+              isDragReject && "border-red-500 bg-red-50 dark:bg-red-950/20",
+            )}
           >
             <input {...getInputProps()} />
-            <div className="flex flex-row items-center">
-              <UploadIcon className="w-10 h-10 text-primary mr-4 flex-shrink-0" />
-              <div className="">
-                <p className="text-base font-medium text-foreground mb-1">
-                  Drop your PDF here or click to browse
-                </p>
-                <p className="text-sm text-muted-foreground">
-                  Maximum file size: 100MB
-                </p>
+            
+            <div className="flex flex-col items-center text-center">
+              <div className="upload-icon-container w-16 h-16 rounded-full bg-primary/10 flex items-center justify-center mb-4">
+                <UploadIcon className="w-8 h-8 text-primary" />
               </div>
+              
+              <h4 className="text-base font-medium text-foreground mb-1">
+                {isDragActive 
+                  ? isDragAccept 
+                    ? "Drop to upload your file" 
+                    : "This file type is not supported"
+                  : "Drag & Drop your file here"}
+              </h4>
+              
+              <p className="text-sm text-muted-foreground mb-2">
+                Upload a PDF, PNG or JPEG file
+              </p>
+              
+              <Button 
+                variant="outline" 
+                size="sm" 
+                className="mt-2"
+                type="button"
+              >
+                Browse Files
+              </Button>
+              
+              <p className="text-xs text-muted-foreground mt-3">
+                Maximum file size: 100MB
+              </p>
             </div>
           </div>
         ) : (
-          <div className="flex my-auto flex-row items-center p-5 rounded-lg bg-secondary">
-            <FileIcon className="w-9 h-9 text-primary mr-4 flex-shrink-0" />
-            <div className="flex-grow min-w-0">
-              <p className="text-base font-medium truncate text-foreground mb-1">
-                {selectedFile?.name}
-              </p>
-              <p className="text-sm text-muted-foreground">
-                {formatFileSize(selectedFile?.size ?? 0)}
-              </p>
-            </div>
-            {file && <PdfViewer file={file} />}
+          <div className="selected-file-container p-5 rounded-lg border border-muted bg-secondary/40 transition-all">
+            <div className="flex flex-row items-center">
+              <div className="file-icon-container w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center mr-4 flex-shrink-0">
+                <FileIcon className="w-5 h-5 text-primary" />
+              </div>
+              
+              <div className="flex-grow min-w-0">
+                <p className="text-sm font-medium truncate text-foreground">
+                  {selectedFile?.name}
+                </p>
+                <p className="text-xs text-muted-foreground">
+                  {formatFileSize(selectedFile?.size ?? 0)}
+                </p>
+              </div>
+              
+              {file && file.type === "application/pdf" && <PdfViewer file={file} />}
+              {file && file.type.startsWith("image/") && (
+                <div className="ml-2 border rounded overflow-hidden">
+                  <img 
+                    src={URL.createObjectURL(file)} 
+                    alt="Preview" 
+                    className="max-h-20 max-w-20 object-contain"
+                  />
+                </div>
+              )}
 
-            <Button
-              variant="ghost"
-              size="icon"
-              onClick={() => setSelectedFile(null)}
-              className="flex-shrink-0 ml-2"
-            >
-              <X className="w-4 h-4" />
-              <span className="sr-only">Remove file</span>
-            </Button>
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={() => setSelectedFile(null)}
+                className="flex-shrink-0 ml-2 text-muted-foreground hover:text-foreground"
+              >
+                <X className="w-4 h-4" />
+                <span className="sr-only">Remove file</span>
+              </Button>
+            </div>
           </div>
         )}
       </div>
 
-      <PromptInput 
-        file={selectedFile} 
-        onSubmit={handlePromptSubmit} 
-      />
+      <div className="extraction-instructions-container space-y-2">
+        <Label htmlFor="extraction-prompt" className="text-sm font-medium">Extraction Instructions</Label>
+        <Textarea
+          id="extraction-prompt"
+          placeholder="Describe what data you want to extract from this document (e.g., 'Extract invoice number, date, vendor name, line items, and total amount')"
+          value={prompt}
+          onChange={handlePromptChange}
+          className="min-h-[120px] resize-none border-muted focus:border-primary"
+        />
+        <p className="text-xs text-muted-foreground">
+          Provide specific instructions to improve extraction accuracy
+        </p>
+      </div>
     </div>
   );
 }

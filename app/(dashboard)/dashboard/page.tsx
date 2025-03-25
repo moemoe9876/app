@@ -8,7 +8,7 @@ import Link from "next/link";
 
 export default function DashboardPage() {
   return (
-    <div className="flex flex-col gap-6 p-6">
+    <div className="flex flex-col gap-6 p-4 md:p-6 w-full max-w-full overflow-hidden">
       <div className="flex flex-col gap-2">
         <h1 className="text-3xl font-bold tracking-tight text-foreground dark:text-foreground">Dashboard</h1>
         <p className="text-muted-foreground">

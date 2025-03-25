@@ -1,0 +1,1 @@
+get name, line items, total and any contact info 

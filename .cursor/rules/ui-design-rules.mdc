@@ -1,0 +1,39 @@
+---
+description: 
+globs: 
+alwaysApply: true
+---
+# UI Design Rules
+Date Last Modified: March 20, 2025
+
+## Component Structure
+- Use shadcn/ui components for consistent UI
+- Implement responsive design for all components
+- Use proper layout components (Flex, Grid) for complex layouts
+- Implement proper loading states for asynchronous operations
+- Use proper error states for failed operations
+- Implement proper empty states for lists and collections
+
+## Styling Approach
+- Use Tailwind CSS for styling
+- Follow the project's color scheme and design system
+- Use consistent spacing and sizing
+- Implement proper dark mode support
+- Use proper typography hierarchy
+- Implement proper animations and transitions
+
+## User Experience
+- Implement proper form validation with clear error messages
+- Use proper loading indicators for asynchronous operations
+- Implement proper toast notifications for user feedback
+- Use proper confirmation dialogs for destructive actions
+- Implement proper keyboard navigation
+- Use proper focus management for accessibility
+
+## Layout Patterns
+- Use ResizablePanels for split-view layouts
+- Implement proper sidebar navigation with collapsible sections
+- Use proper card layouts for content organization
+- Implement proper table layouts for data display
+- Use proper modal dialogs for focused interactions
+- Implement proper drawer components for side panels

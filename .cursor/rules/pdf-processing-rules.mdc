@@ -1,0 +1,33 @@
+---
+description: pdf processing rules
+globs: 
+alwaysApply: false
+---
+# PDF Processing Rules
+Date Last Modified: March 20, 2025
+
+## Document Handling
+- Use react-pdf for PDF rendering and manipulation
+- Implement proper PDF validation before processing
+- Handle large PDFs efficiently with pagination
+- Implement proper error handling for PDF parsing failures
+- Use appropriate compression for stored PDFs
+- Implement proper caching for frequently accessed PDFs
+
+## Data Extraction
+- Use Google Gemini AI for document data extraction
+- Implement proper prompt engineering for accurate extraction
+- Store extraction metadata with each document
+- Implement confidence scoring for all extracted fields
+- Store position data for extracted fields when available
+- Implement proper validation for extracted data
+- Use appropriate data types for extracted fields
+- Implement proper error handling for extraction failures
+
+## UI Implementation
+- Implement highlighting of extracted fields in document viewers
+- Allow users to correct extraction errors
+- Show confidence scores visually when appropriate
+- Implement proper filtering based on confidence thresholds
+- Allow users to export extracted data in multiple formats
+- Implement proper data visualization for extracted information

@@ -77,7 +77,7 @@ export function SidebarProvider({
 
   return (
     <SidebarContext.Provider value={{ open, setOpen, toggle, isMobile }}>
-      <div className="relative flex w-full min-w-0 justify-start" style={style}>
+      <div className="relative flex w-full min-w-0 max-w-full overflow-hidden justify-start" style={style}>
         {children}
       </div>
     </SidebarContext.Provider>
@@ -153,11 +153,11 @@ export function SidebarInset({
       className={cn(
         "flex flex-1 flex-col transition-all duration-300 ease-in-out",
         // Base padding for mobile
-        isMobile ? "px-4" : "",
+        isMobile ? "px-2" : "",
         // Specific padding for desktop based on sidebar state
         !isMobile && (open 
-          ? "sm:pl-[var(--sidebar-width)] sm:pr-4 md:pr-8 lg:pr-12" 
-          : "sm:pl-[var(--sidebar-width-collapsed)] sm:pr-4 md:pr-8 lg:pr-12"),
+          ? "sm:pl-[var(--sidebar-width)] sm:pr-2 md:pr-4 lg:pr-6" 
+          : "sm:pl-[var(--sidebar-width-collapsed)] sm:pr-2 md:pr-4 lg:pr-6"),
         className
       )}
       data-state={open ? "open" : "closed"}

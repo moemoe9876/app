@@ -76,7 +76,7 @@ export function ExportModal({
             <div className="grid grid-cols-3 gap-2">
               <Button
                 variant={selectedFormat === "json" ? "default" : "outline"}
-                className="flex flex-col items-center justify-center gap-2 h-auto py-4"
+                className="flex flex-col items-center justify-center gap-2 h-auto py-4 bg-background"
                 onClick={() => setSelectedFormat("json")}
               >
                 <FileJson className="h-8 w-8" />
@@ -84,7 +84,7 @@ export function ExportModal({
               </Button>
               <Button
                 variant={selectedFormat === "csv" ? "default" : "outline"}
-                className="flex flex-col items-center justify-center gap-2 h-auto py-4"
+                className="flex flex-col items-center justify-center gap-2 h-auto py-4 bg-background"
                 onClick={() => setSelectedFormat("csv")}
               >
                 <FileText className="h-8 w-8" />
@@ -92,7 +92,7 @@ export function ExportModal({
               </Button>
               <Button
                 variant={selectedFormat === "xlsx" ? "default" : "outline"}
-                className="flex flex-col items-center justify-center gap-2 h-auto py-4"
+                className="flex flex-col items-center justify-center gap-2 h-auto py-4 bg-background"
                 onClick={() => setSelectedFormat("xlsx")}
               >
                 <FileSpreadsheet className="h-8 w-8" />

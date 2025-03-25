@@ -62,16 +62,21 @@ export async function GET(
     
     // Get the file from the document directory
     const files = await readdir(documentDir);
-    const pdfFiles = files.filter(file => file.endsWith('.pdf'));
+    const documentFiles = files.filter(file => 
+      file.endsWith('.pdf') || 
+      file.endsWith('.png') || 
+      file.endsWith('.jpg') || 
+      file.endsWith('.jpeg')
+    );
     
-    if (pdfFiles.length === 0) {
+    if (documentFiles.length === 0) {
       return NextResponse.json(
-        { error: "No PDF files found for this document" },
+        { error: "No document files found for this document" },
         { status: 404 }
       );
     }
     
-    const fileName = pdfFiles[0]; // Get the first PDF file
+    const fileName = documentFiles[0]; // Get the first document file
     const filePath = join(documentDir, fileName);
     
     // Check if we already have extracted data
@@ -221,7 +226,9 @@ export async function GET(
           },
           {
             inlineData: {
-              mimeType: "application/pdf",
+              mimeType: fileName.endsWith('.pdf') ? "application/pdf" : 
+                        (fileName.endsWith('.png') ? "image/png" : 
+                        (fileName.endsWith('.jpg') || fileName.endsWith('.jpeg') ? "image/jpeg" : "application/octet-stream")),
               data: base64,
             },
           },

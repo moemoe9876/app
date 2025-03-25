@@ -53,6 +53,7 @@ import { useToast } from "@/components/ui/use-toast";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { ResizablePanels } from "@/components/ResizablePanels";
 import { DataVisualizer } from "@/components/DataVisualizer";
+import DocumentViewer from "@/components/DocumentViewer";
 
 interface PageProps {
   params: Promise<{
@@ -407,45 +408,8 @@ export default function ReviewPage({ params }: PageProps) {
 
   return (
     <div className="flex flex-col gap-6">
-      <div className="flex flex-col gap-2">
-        <div className="flex items-center justify-between">
-          <h1 className="text-3xl font-bold tracking-tight">Document Review</h1>
-          <div className="flex items-center gap-2">
-            <Badge 
-              variant={confirmed ? "default" : "outline"}
-              className={confirmed ? "bg-green-600" : ""}
-            >
-              {confirmed ? "Confirmed" : "Pending Confirmation"}
-            </Badge>
-          </div>
-        </div>
-        <p className="text-muted-foreground">
-          Review and verify the extracted data from your document
-        </p>
-      </div>
-
-      {/* Controls */}
-      <div className="flex items-center gap-4 p-4 bg-muted rounded-lg">
-        <div className="flex items-center gap-2">
-          <Label htmlFor="confidence-threshold" className="text-sm">
-            Confidence Threshold:
-          </Label>
-          <div className="w-32">
-            <Slider
-              id="confidence-threshold"
-              min={0}
-              max={1}
-              step={0.05}
-              value={[confidenceThreshold]}
-              onValueChange={(value) => setConfidenceThreshold(value[0])}
-              aria-label={`Confidence threshold, currently set to ${Math.round(confidenceThreshold * 100)}%`}
-              aria-labelledby="confidence-threshold-label"
-            />
-          </div>
-          <span id="confidence-threshold-label" className="text-sm font-medium w-12">
-            {Math.round(confidenceThreshold * 100)}%
-          </span>
-        </div>
+      <div className="flex items-center justify-between mb-4">
+        <h1 className="text-2xl font-bold tracking-tight">Document Review</h1>
         
         <div className="ml-auto flex gap-2">
           <Button
@@ -467,7 +431,7 @@ export default function ReviewPage({ params }: PageProps) {
         </div>
       </div>
 
-      <div className="h-[calc(100vh-180px)]">
+      <div className="h-[calc(100vh-200px)] w-full">
         <ResizablePanels
           leftPanel={
             <DataVisualizer
@@ -536,10 +500,8 @@ export default function ReviewPage({ params }: PageProps) {
               
               <CardContent className="flex-1 overflow-auto p-0 bg-muted/50 relative">
                 {pdfUrl ? (
-                  <PdfViewerUrl 
+                  <DocumentViewer 
                     url={pdfUrl} 
-                    zoomLevel={zoomLevel}
-                    onZoomChange={setZoomLevel}
                     highlights={currentHighlight ? [currentHighlight] : []}
                     onPositionClick={handlePdfPositionClick}
                   />
@@ -555,9 +517,9 @@ export default function ReviewPage({ params }: PageProps) {
               </CardContent>
             </Card>
           }
-          defaultLeftWidth={45}
-          minLeftWidth={30}
-          maxLeftWidth={70}
+          defaultLeftWidth={40}
+          minLeftWidth={25}
+          maxLeftWidth={60}
           storageKey="documentReviewPanels"
         />
       </div>

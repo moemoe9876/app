@@ -82,22 +82,22 @@ export function ResizablePanels({
   return (
     <div 
       ref={containerRef}
-      className={cn("flex h-full", className)}
+      className={cn("flex h-full w-full overflow-hidden rounded-lg box-border", className)}
     >
       <div 
-        className="overflow-auto"
+        className="overflow-y-auto overflow-x-hidden h-full box-border"
         style={{ width: `${leftWidth}%` }}
       >
         {leftPanel}
       </div>
       
       <div 
-        className="w-1 bg-border hover:bg-primary/50 cursor-col-resize flex-shrink-0"
+        className="w-1 bg-border hover:bg-primary/50 cursor-col-resize flex-shrink-0 h-full"
         onMouseDown={handleMouseDown}
       />
       
       <div 
-        className="overflow-auto"
+        className="overflow-y-auto overflow-x-hidden h-full box-border"
         style={{ width: `${100 - leftWidth}%` }}
       >
         {rightPanel}

@@ -44,11 +44,11 @@ function DashboardContent({ children }: { children: React.ReactNode }) {
   }, [open]);
   
   return (
-    <SidebarInset>
-      <div className="dashboard-container flex-1 min-w-0 min-h-[calc(100vh-10px)]">
-        <SiteHeader className="px-4 sm:px-6 md:px-8 border-b border-border/50" />
+    <SidebarInset className="w-full max-w-full box-border">
+      <div className="dashboard-container flex-1 min-w-0 w-full h-[calc(100vh-2rem)] overflow-hidden p-4 md:p-6 lg:p-8 box-border rounded-lg mx-auto my-0">
+        <SiteHeader className="border-b border-border/50 mb-4" />
         <div 
-          className="flex flex-1 flex-col px-4 py-4 sm:px-6 sm:py-6 md:px-8 md:py-8"
+          className="flex flex-1 flex-col h-[calc(100vh-140px)] overflow-y-auto overflow-x-hidden w-full"
           data-content-container="true"
         >
           {children}
@@ -74,12 +74,12 @@ export default function DashboardLayout({
   }, []);
 
   return (
-    <div className="theme-default theme-scaled dashboard-background min-h-screen w-full flex">
+    <div className="theme-default theme-scaled dashboard-background min-h-screen w-full flex overflow-hidden box-border p-4">
       <SidebarProvider
         defaultOpen={defaultOpen}
         style={{
-          "--sidebar-width": "calc(var(--spacing) * 72)",
-          "--sidebar-width-collapsed": "calc(var(--spacing) * 16)",
+          "--sidebar-width": "calc(var(--spacing) * 60)",
+          "--sidebar-width-collapsed": "calc(var(--spacing) * 14)",
           "--header-height": "60px",
         } as React.CSSProperties}
       >

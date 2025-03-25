@@ -123,7 +123,7 @@ export function DataVisualizer({
   confidenceThreshold = 0,
   options = { includePositions: true }
 }: DataVisualizerProps) {
-  const [viewMode, setViewMode] = useState<"tree" | "table" | "json">("tree");
+  const [viewMode, setViewMode] = useState<"tree" | "json">("tree");
   const [searchQuery, setSearchQuery] = useState("");
   const [expandedSections, setExpandedSections] = useState<Set<string>>(new Set());
   const [minConfidence, setMinConfidence] = useState(confidenceThreshold);
@@ -440,33 +440,53 @@ export function DataVisualizer({
   };
 
   return (
-    <Card className={cn("h-full flex flex-col", className)}>
-      <CardHeader className="pb-2">
-        <div className="flex items-center justify-between">
-          <CardTitle>Extracted Data</CardTitle>
-          <Tabs value={viewMode} onValueChange={(v) => setViewMode(v as any)}>
-            <TabsList>
-              <TabsTrigger value="tree">Tree</TabsTrigger>
-              <TabsTrigger value="table">Table</TabsTrigger>
-              <TabsTrigger value="json">JSON</TabsTrigger>
-            </TabsList>
-          </Tabs>
+    <Card className={cn("h-full flex flex-col overflow-hidden rounded-none", className)}>
+      <CardHeader className="px-4 py-3 flex flex-row items-center justify-between space-y-0">
+        <CardTitle className="text-lg">Extracted Data</CardTitle>
+        <div className="flex gap-2">
+          <Popover open={showConfidenceFilter} onOpenChange={setShowConfidenceFilter}>
+            <PopoverTrigger asChild>
+              <Button variant="outline" size="sm" className="h-8 gap-1">
+                <SlidersHorizontal className="h-3.5 w-3.5" />
+                <span>Filter</span>
+              </Button>
+            </PopoverTrigger>
+            <PopoverContent className="w-80" align="end">
+              <div className="space-y-4">
+                <div className="space-y-2">
+                  <h4 className="font-medium text-sm">Confidence Filter</h4>
+                  <div className="flex items-center justify-between">
+                    <span className="text-sm">Min: {Math.round(minConfidence * 100)}%</span>
+                    <input 
+                      type="range" 
+                      min="0" 
+                      max="1" 
+                      step="0.05" 
+                      value={minConfidence}
+                      onChange={(e) => setMinConfidence(parseFloat(e.target.value))}
+                      className="w-2/3"
+                    />
+                  </div>
+                </div>
+              </div>
+            </PopoverContent>
+          </Popover>
         </div>
       </CardHeader>
-      <div className="px-4 pb-2 flex items-center gap-2">
+      <div className="px-4 pb-2 pt-0 flex items-center gap-2">
         <div className="relative flex-1">
           <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
           <Input
-            placeholder="Search extracted data..."
+            placeholder="Search fields..."
+            className="pl-8 h-9"
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            className="pl-8"
           />
           {searchQuery && (
             <Button
               variant="ghost"
               size="sm"
-              className="absolute right-1 top-1 h-7 w-7 p-0"
+              className="absolute right-0.5 top-0.5 h-8 w-8 p-0"
               onClick={() => setSearchQuery("")}
             >
               <X className="h-4 w-4" />
@@ -474,103 +494,26 @@ export function DataVisualizer({
           )}
         </div>
         
-        <Popover open={showConfidenceFilter} onOpenChange={setShowConfidenceFilter}>
-          <PopoverTrigger asChild>
-            <Button 
-              variant="outline" 
-              size="sm"
-              className={cn(minConfidence > 0 && "bg-muted")}
-            >
-              <Filter className="h-4 w-4 mr-1" />
-              Confidence
-            </Button>
-          </PopoverTrigger>
-          <PopoverContent className="w-80">
-            <div className="space-y-4">
-              <h4 className="font-medium">Confidence Filter</h4>
-              <div className="flex items-center gap-2">
-                <SlidersHorizontal className="h-4 w-4 text-muted-foreground" />
-                <Input
-                  type="range"
-                  min="0"
-                  max="1"
-                  step="0.05"
-                  value={minConfidence}
-                  onChange={(e) => setMinConfidence(parseFloat(e.target.value))}
-                  className="w-full"
-                />
-                <span className="text-sm font-medium w-12">
-                  {Math.round(minConfidence * 100)}%
-                </span>
-              </div>
-              <div className="flex justify-between">
-                <Button 
-                  variant="outline" 
-                  size="sm" 
-                  onClick={() => setMinConfidence(0)}
-                >
-                  Reset
-                </Button>
-                <Button 
-                  size="sm" 
-                  onClick={() => setShowConfidenceFilter(false)}
-                >
-                  Apply
-                </Button>
-              </div>
-            </div>
-          </PopoverContent>
-        </Popover>
-        
-        {viewMode === "tree" && (
+        <Tabs defaultValue="tree" value={viewMode} onValueChange={(v) => setViewMode(v as any)}>
+          <TabsList className="h-9">
+            <TabsTrigger value="tree" className="text-xs">Tree</TabsTrigger>
+            <TabsTrigger value="json" className="text-xs">JSON</TabsTrigger>
+          </TabsList>
+        </Tabs>
+      </div>
+      
+      <CardContent className="p-0 flex-1 overflow-y-auto max-h-[calc(100vh-300px)]">
+        {data ? (
           <>
-            <Button variant="outline" size="sm" onClick={expandAll}>
-              Expand All
-            </Button>
-            <Button variant="outline" size="sm" onClick={collapseAll}>
-              Collapse All
-            </Button>
+            {viewMode === "tree" && renderTreeView()}
+            {viewMode === "json" && renderJsonView()}
           </>
+        ) : (
+          <div className="flex items-center justify-center h-full p-4 text-muted-foreground text-sm">
+            No data available
+          </div>
         )}
-        
-        <Popover>
-          <PopoverTrigger asChild>
-            <Button variant="outline" size="sm">
-              <Download className="h-4 w-4 mr-1" />
-              Export
-            </Button>
-          </PopoverTrigger>
-          <PopoverContent className="w-40">
-            <div className="space-y-2">
-              <Button 
-                variant="ghost" 
-                className="w-full justify-start" 
-                onClick={exportAsCSV}
-              >
-                CSV
-              </Button>
-              <Button 
-                variant="ghost" 
-                className="w-full justify-start" 
-                onClick={exportAsJSON}
-              >
-                JSON
-              </Button>
-            </div>
-          </PopoverContent>
-        </Popover>
-      </div>
-      <CardContent className="flex-1 overflow-auto pt-2">
-        {viewMode === "tree" && renderTreeView()}
-        {viewMode === "table" && renderTableView()}
-        {viewMode === "json" && renderJsonView()}
       </CardContent>
-      <div className="p-2 border-t flex items-center gap-2 text-xs text-muted-foreground">
-        <span>Confidence:</span>
-        <Badge variant="outline" className={getConfidenceColor(0.95)}>High (90-100%)</Badge>
-        <Badge variant="outline" className={getConfidenceColor(0.8)}>Medium (70-89%)</Badge>
-        <Badge variant="outline" className={getConfidenceColor(0.5)}>Low (0-69%)</Badge>
-      </div>
     </Card>
   );
 } 

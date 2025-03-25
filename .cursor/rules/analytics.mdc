@@ -1,0 +1,106 @@
+---
+description: Follow these rules when working on analytics with PostHog.
+globs: lib/analytics.ts, app/**/*.tsx, app/**/*.ts, components/**/*.tsx, components/**/*.ts
+---
+### Analytics Rules
+
+Follow these rules when working on analytics.
+
+It uses PostHog for analytics.
+
+#### General Rules
+
+- **Initialize PostHog:** Initialize PostHog in a dedicated `analytics.ts` file within the `lib` directory and import it where needed.
+- **Environment Variables:** Use environment variables to store your PostHog API key and instance address.
+- **Track Events:** Use `posthog.capture()` to track user events and interactions relevant to your application's analytics goals.
+- **Identify Users:** Identify users using `posthog.identify(userId, userProperties)` after successful authentication to associate events with specific users.
+- **Feature Flags:** Utilize PostHog feature flags for A/B testing and controlled feature rollouts.
+- **Performance Considerations:** Ensure analytics tracking does not negatively impact frontend performance. Defer tracking calls where possible.
+- **Privacy:** Be mindful of user privacy and data protection regulations when collecting and using analytics data.
+
+#### Implementation Guidelines
+
+- **Centralized Analytics Helper:** Create a utility function or hook in `lib/analytics.ts` to encapsulate PostHog initialization and event tracking logic.
+- **Consistent Event Naming:** Follow a consistent naming convention for analytics events (e.g., `button_click`, `form_submit`, `document_uploaded`).
+- **Contextual Event Properties:** Include relevant context as event properties to provide richer insights (e.g., component name, user role, document type).
+- **Avoid Sensitive Data:** Do not track or send personally identifiable information (PII) or sensitive data to PostHog unless absolutely necessary and compliant with privacy regulations.
+
+**Example `lib/analytics.ts`:**
+
+```ts
+import posthog from 'posthog-js'
+
+const POSTHOG_API_KEY = process.env.NEXT_PUBLIC_POSTHOG_KEY;
+const POSTHOG_HOST = process.env.NEXT_PUBLIC_POSTHOG_HOST;
+
+let posthogClient: posthog.PostHog | null = null;
+
+export const initPosthog = () => {
+  if (POSTHOG_API_KEY && POSTHOG_HOST && !posthogClient) {
+    posthog.init(POSTHOG_API_KEY, {
+      api_host: POSTHOG_HOST,
+      // ... other configuration options
+      loaded: (posthogInstance) => {
+        if (process.env.NODE_ENV === 'development') {
+          posthogInstance.debug()
+        }
+        posthogClient = posthogInstance;
+      },
+    })
+    return posthogClient;
+  }
+  return posthogClient;
+}
+
+export const captureEvent = (eventName: string, properties?: Record<string, any>) => {
+  if (!posthogClient) {
+    posthogClient = initPosthog();
+  }
+  posthogClient?.capture(eventName, properties);
+};
+
+export const identifyUser = (userId: string, userProperties?: Record<string, any>) => {
+  if (!posthogClient) {
+    posthogClient = initPosthog();
+  }
+  posthogClient?.identify(userId, userProperties);
+};
+
+export const usePostHog = () => {
+  if (!posthogClient) {
+    posthogClient = initPosthog();
+  }
+  return {
+    posthog: posthogClient,
+    captureEvent,
+    identifyUser,
+  };
+};
+```
+
+**Example Usage in a Component:**
+
+```tsx
+"use client";
+import { usePostHog } from "@/lib/analytics";
+import { useEffect } from 'react';
+
+const ExampleComponent = () => {
+  const { captureEvent, identifyUser } = usePostHog();
+
+  useEffect(() => {
+    // Identify user after successful authentication (example)
+    identifyUser('user123', { email: 'user@example.com', role: 'editor' });
+  }, [identifyUser]);
+
+  const handleClick = () => {
+    captureEvent('button_click', { component: 'ExampleComponent', buttonText: 'Click Me' });
+    alert('Button Clicked!');
+  };
+
+  return (
+    <button onClick={handleClick}>Click Me</button>
+  );
+};
+```
+```

@@ -41,7 +41,7 @@ export async function POST(request: Request) {
     
     // Parse options if provided
     const optionsJson = formData.get("options") as string;
-    if (optionsJson) {
+    if (optionsJson && optionsJson !== 'undefined') {
       try {
         extractionOptions = { ...extractionOptions, ...JSON.parse(optionsJson) };
       } catch (error) {

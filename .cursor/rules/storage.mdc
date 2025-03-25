@@ -1,0 +1,174 @@
+---
+description: Follow these rules when working on file storage with Firebase Storage.
+globs: actions/storage/**/*.ts, app/**/*.tsx, app/**/*.ts, components/**/*.tsx, components/**/*.ts
+---
+# Storage Rules
+
+Follow these rules when working with Firebase Storage.
+
+It uses Firebase Storage for file uploads, downloads, and management.
+
+## General Rules
+
+- **Firebase Storage SDK:** Use the Firebase Storage SDK for all storage operations.
+- **Security Rules:** Implement and enforce Firebase Storage Security Rules to control access to storage buckets and files.
+- **Error Handling:** Implement proper error handling for storage operations, including uploads, downloads, and deletions.
+- **Performance Optimization:** Optimize file uploads and downloads by using appropriate transfer sizes and considering CDN usage for public files.
+- **Scalability:** Design your storage structure and access patterns to scale efficiently as your application grows.
+
+## Organization
+
+### Buckets
+
+- **Firebase Project Buckets:** Firebase Storage uses buckets within your Firebase project. You will primarily interact with the default bucket or any additional buckets you create in the Firebase console.
+- **Bucket Policies (Security Rules):** Define Firebase Storage Security Rules to control access to buckets and files. Rules can be based on authentication, user roles, file metadata, and more.
+- **Bucket Location:** Choose the appropriate Firebase Storage bucket location (region) based on your users' geographic distribution and latency requirements.
+
+### File Structure
+
+- Organize files in folders based on their purpose and ownership
+- Use predictable, collision-resistant naming patterns
+- Structure: `{bucket}/{userId}/{purpose}/{filename}` (Adapt this to your needs, Firebase Storage doesn't enforce bucket names in paths)
+- Example: `profile-images/123e4567-e89b/avatar/profile.jpg`
+- Include timestamps in filenames when version history is important
+- Example: `documents/123e4567-e89b/contracts/2024-02-13-contract.pdf`
+
+## Actions
+
+- When importing storage actions, use `@/actions/storage`
+- Name files like `example-storage-actions.ts`
+- Include Storage at the end of function names `Ex: uploadFile -> uploadFileStorage`
+- Follow the same ActionState pattern as DB actions
+
+Example of a storage action:
+
+```ts
+"use server"
+
+import { storage } from "@/lib/firebase-admin"; // Assuming you have Firebase Admin initialized and exported as 'storage'
+import { ActionState } from "@/types";
+
+export async function uploadFileStorageAction(
+  bucketName: string, // Pass bucket name if using multiple buckets
+  filePath: string, // Path within the bucket
+  file: File
+): Promise<ActionState<{ fileUrl: string }>> {
+  try {
+    const bucket = storage.bucket(bucketName); // Get specific bucket if needed, otherwise default bucket is used
+    const fileRef = bucket.file(filePath);
+
+    const buffer = Buffer.from(await file.arrayBuffer());
+
+    await fileRef.save(buffer, {
+      metadata: {
+        contentType: file.type,
+      },
+    });
+
+    const fileUrl = await fileRef.getSignedUrl({
+      action: 'read',
+      expires: '03-09-2491' // Example expiry date (adjust as needed)
+    });
+
+
+    return {
+      isSuccess: true,
+      message: "File uploaded successfully",
+      data: { fileUrl: fileUrl[0] }
+    };
+  } catch (error) {
+    console.error("Error uploading file to Firebase Storage:", error);
+    return { isSuccess: false, message: "Failed to upload file" };
+  }
+}
+```
+
+## File Handling
+
+### Upload Rules
+
+- Always validate file size before upload on the client-side and server-side.
+- Implement file type validation using both extension and MIME type.
+- Generate unique filenames to prevent collisions (consider using UUIDs).
+- Set appropriate content-type headers when uploading.
+- Handle existing files appropriately (error or overwrite based on requirements).
+
+Example validation (Conceptual - Adapt for your forms/actions):
+
+```ts
+const MAX_FILE_SIZE = 10 * 1024 * 1024 // 10MB
+const ALLOWED_TYPES = ["image/jpeg", "image/png", "image/webp", "application/pdf"]
+
+function validateFile(file: File): boolean {
+  if (file.size > MAX_FILE_SIZE) {
+    throw new Error("File size exceeds limit");
+  }
+
+  if (!ALLOWED_TYPES.includes(file.type)) {
+    throw new Error("File type not allowed");
+  }
+
+  return true;
+}
+```
+
+### Download Rules
+
+- Always handle missing files gracefully.
+- Implement proper error handling for failed downloads.
+- Use signed URLs for private files to control access and expiration.
+
+### Delete Rules
+
+- Implement soft deletes when appropriate (e.g., mark file as deleted in database instead of immediately deleting from storage).
+- Clean up related database records when deleting files.
+- Handle bulk deletions carefully.
+- Verify user permissions before deletion.
+
+## Security
+
+### Bucket Policies (Firebase Storage Security Rules)
+
+- Make buckets private by default using Firebase Storage Security Rules.
+- Only allow authorized users to read and write files based on authentication and authorization logic in your Security Rules.
+- Example Security Rule to allow only authenticated users to upload and read files in a 'user-uploads' folder, and only allow users to delete their own files:
+
+```
+rules_version = '2';
+service firebase.storage {
+  match /b/{bucket}/o {
+    match /user-uploads/{userId}/{allPaths=**} {
+      allow read: if request.auth != null;
+      allow create: if request.auth != null && request.auth.uid == userId;
+      allow update: if request.auth != null && request.auth.uid == userId;
+      allow delete: if request.auth != null && request.auth.uid == userId;
+    }
+    match /{allPaths=**} {
+      allow read: if false; // Default deny all other paths
+    }
+  }
+}
+```
+
+*(Remember to customize these rules based on your specific access control requirements. Deploy these rules to your Firebase project via the Firebase CLI or Firebase console.)*
+
+### Access Control
+
+- Generate short-lived signed URLs for private files using `getDownloadURL` or `getSignedUrl` to grant temporary access.
+- Implement proper CORS policies in Firebase Storage settings if needed for cross-origin access.
+- Validate user permissions before any storage operation in your server-side code and Firebase Security Rules.
+
+## Error Handling
+
+- Implement specific error types for common storage issues (e.g., file not found, permission denied, upload failed).
+- Always provide meaningful error messages to the user.
+- Implement retry logic for transient failures in storage operations.
+- Log storage errors separately for monitoring and debugging.
+
+## Optimization
+
+- Implement progressive upload for large files if needed.
+- Clean up temporary files and handle failed uploads appropriately.
+- Use batch operations when handling multiple files for better performance.
+- Consider using Firebase Storage's built-in CDN for serving public files efficiently.
+```

@@ -1,11 +1,11 @@
 "use client";
 
-import { useCallback, useState, useEffect, useMemo } from "react";
+import { useCallback, useState, useEffect, useMemo, useRef } from "react";
 import { pdfjs, Document, Page } from "react-pdf";
 import "react-pdf/dist/esm/Page/AnnotationLayer.css";
 import "react-pdf/dist/esm/Page/TextLayer.css";
 import { useResizeObserver } from "@wojtekmaj/react-hooks";
-import { AlertCircle, ZoomIn, ZoomOut } from "lucide-react";
+import { AlertCircle } from "lucide-react";
 import { debounce } from "lodash";
 
 import type { PDFDocumentProxy } from "pdfjs-dist";
@@ -47,6 +47,8 @@ interface PdfViewerUrlProps {
   highlightedField?: FieldLocation;
   highlights?: HighlightRect[];
   onPositionClick?: (pageNumber: number, position: [number, number]) => void;
+  className?: string;
+  dragMode?: boolean;
 }
 
 export default function PdfViewerUrl({ 
@@ -55,7 +57,9 @@ export default function PdfViewerUrl({
   onZoomChange,
   highlightedField,
   highlights = [],
-  onPositionClick
+  onPositionClick,
+  className,
+  dragMode = false
 }: PdfViewerUrlProps) {
   const [numPages, setNumPages] = useState<number>();
   const [containerRef, setContainerRef] = useState<HTMLElement | null>(null);
@@ -65,11 +69,23 @@ export default function PdfViewerUrl({
   const [pageRefs, setPageRefs] = useState<(HTMLDivElement | null)[]>([]);
   const [pageHeights, setPageHeights] = useState<number[]>([]);
   const [currentPage, setCurrentPage] = useState(1);
+  const [position, setPosition] = useState({ x: 0, y: 0 });
+  const [isDragging, setIsDragging] = useState(false);
+  const [dragStart, setDragStart] = useState({ x: 0, y: 0 });
+  const pdfContainerRef = useRef<HTMLDivElement>(null);
 
   // Sync zoom level with parent component
   useEffect(() => {
     setZoom(zoomLevel);
   }, [zoomLevel]);
+
+  // Update local zoom and notify parent
+  const updateZoom = (newZoom: number) => {
+    setZoom(newZoom);
+    if (onZoomChange) {
+      onZoomChange(newZoom);
+    }
+  };
 
   // Initialize page refs when numPages changes
   useEffect(() => {
@@ -110,6 +126,9 @@ export default function PdfViewerUrl({
   async function onDocumentLoadSuccess(page: PDFDocumentProxy): Promise<void> {
     setError(null);
     setNumPages(page._pdfInfo.numPages);
+    // Reset position and zoom on new document
+    setPosition({ x: 0, y: 0 });
+    setZoom(100);
   }
 
   function onDocumentLoadError(err: Error): void {
@@ -118,19 +137,45 @@ export default function PdfViewerUrl({
   }
 
   const handleZoomIn = () => {
-    const newZoom = Math.min(200, zoom + 10);
-    setZoom(newZoom);
-    if (onZoomChange) {
-      onZoomChange(newZoom);
-    }
+    const newZoom = Math.min(400, zoom + 25);
+    updateZoom(newZoom);
   };
 
   const handleZoomOut = () => {
-    const newZoom = Math.max(50, zoom - 10);
-    setZoom(newZoom);
-    if (onZoomChange) {
-      onZoomChange(newZoom);
+    const newZoom = Math.max(25, zoom - 25);
+    updateZoom(newZoom);
+  };
+
+  const handleResetView = () => {
+    updateZoom(100);
+    setPosition({ x: 0, y: 0 });
+  };
+
+  // Handle mouse down for dragging
+  const handleMouseDown = (e: React.MouseEvent) => {
+    // Don't initiate drag if in position selection mode and not in drag mode
+    if (onPositionClick && !dragMode) return;
+    
+    setIsDragging(true);
+    setDragStart({ x: e.clientX - position.x, y: e.clientY - position.y });
+    
+    // Prevent default behavior when dragging
+    e.preventDefault();
+  };
+
+  // Handle mouse move for dragging
+  const handleMouseMove = (e: React.MouseEvent) => {
+    if (isDragging) {
+      setPosition({
+        x: e.clientX - dragStart.x,
+        y: e.clientY - dragStart.y
+      });
     }
+  };
+
+  // Handle mouse up to stop dragging
+  const handleMouseUp = () => {
+    setIsDragging(false);
   };
 
   // Set a ref for a specific page - use useCallback to prevent recreation on every render
@@ -194,7 +239,7 @@ export default function PdfViewerUrl({
 
   // Add click handler for the text layer
   const handleTextLayerClick = (e: React.MouseEvent, pageNumber: number) => {
-    if (!containerRef || !onPositionClick) return;
+    if (!containerRef || !onPositionClick || isDragging || dragMode) return;
     
     const pageRef = pageRefs[pageNumber - 1];
     if (!pageRef) return;
@@ -202,9 +247,13 @@ export default function PdfViewerUrl({
     const pageRect = pageRef.getBoundingClientRect();
     const scale = zoom / 100;
     
-    // Calculate click position as percentage of page dimensions
-    const x = ((e.clientX - pageRect.left) / scale / containerWidth!) * 100;
-    const y = ((e.clientY - pageRect.top) / scale / pageHeights[pageNumber - 1]) * 100;
+    // Calculate click position as percentage of page dimensions, accounting for panning
+    const offsetX = (e.clientX - pageRect.left - position.x / scale);
+    const offsetY = (e.clientY - pageRect.top - position.y / scale);
+    
+    // Convert to percentage
+    const x = (offsetX / (containerWidth! * scale)) * 100;
+    const y = (offsetY / (pageHeights[pageNumber - 1] * scale)) * 100;
     
     // Ensure values are within bounds
     const boundedX = Math.max(0, Math.min(100, x));
@@ -216,21 +265,53 @@ export default function PdfViewerUrl({
     onPositionClick(pageNumber, [boundedX, boundedY]);
   };
 
+  // Add global event listeners for dragging
+  useEffect(() => {
+    const handleGlobalMouseUp = () => {
+      setIsDragging(false);
+    };
+    
+    const handleGlobalMouseMove = (e: MouseEvent) => {
+      if (isDragging && zoom > 100) {
+        setPosition({
+          x: e.clientX - dragStart.x,
+          y: e.clientY - dragStart.y
+        });
+      }
+    };
+    
+    window.addEventListener('mouseup', handleGlobalMouseUp);
+    window.addEventListener('mousemove', handleGlobalMouseMove);
+    
+    return () => {
+      window.removeEventListener('mouseup', handleGlobalMouseUp);
+      window.removeEventListener('mousemove', handleGlobalMouseMove);
+    };
+  }, [isDragging, dragStart, zoom]);
+
+  // Add wheel event for zooming 
+  useEffect(() => {
+    const handleWheel = (e: WheelEvent) => {
+      if (e.ctrlKey || e.metaKey) {
+        e.preventDefault();
+        const delta = -Math.sign(e.deltaY) * 10;
+        const newZoom = Math.max(25, Math.min(400, zoom + delta));
+        updateZoom(newZoom);
+      }
+    };
+    
+    containerRef?.addEventListener('wheel', handleWheel, { passive: false });
+    
+    return () => {
+      containerRef?.removeEventListener('wheel', handleWheel);
+    };
+  }, [containerRef, zoom, updateZoom]);
+
   return (
-    <div className="flex flex-col h-full">
-      <div className="flex items-center justify-end gap-2 mb-2">
-        <Button variant="outline" size="icon" onClick={handleZoomOut}>
-          <ZoomOut className="h-4 w-4" />
-        </Button>
-        <span className="text-sm">{zoom}%</span>
-        <Button variant="outline" size="icon" onClick={handleZoomIn}>
-          <ZoomIn className="h-4 w-4" />
-        </Button>
-      </div>
-      
+    <div className={`flex flex-col h-full w-full box-border ${className || ''}`}>
       <div
         ref={setContainerRef}
-        className="flex-1 overflow-auto"
+        className="flex-1 overflow-y-auto overflow-x-hidden h-full w-full box-border"
       >
         {error ? (
           <Alert variant="destructive" className="mb-4">
@@ -241,50 +322,71 @@ export default function PdfViewerUrl({
             </AlertDescription>
           </Alert>
         ) : (
-          <div style={{ transform: `scale(${zoom / 100})`, transformOrigin: 'top center' }}>
-            <Document
-              file={url}
-              onLoadSuccess={onDocumentLoadSuccess}
-              onLoadError={onDocumentLoadError}
-              options={options}
-              loading={<div className="text-center py-4">Loading PDF...</div>}
-            >
-              {Array.from(new Array(numPages), (_el, index) => {
-                const pageNumber = index + 1;
-                return (
-                  <div 
-                    key={`page_container_${pageNumber}`} 
-                    className="relative mb-4"
-                    ref={refCallbacks[index]}
-                  >
-                    <Page
-                      key={`page_${pageNumber}`}
-                      pageNumber={pageNumber}
-                      width={containerWidth}
-                      renderTextLayer={true}
-                      renderAnnotationLayer={true}
-                      onRenderSuccess={(page) => handlePageRenderSuccess(page, pageNumber)}
-                    />
-                    
-                    {/* Add highlight layer for each page */}
-                    <PdfHighlightLayer
-                      highlights={highlights}
-                      currentPage={pageNumber}
-                      containerWidth={containerWidth || 0}
-                      containerHeight={pageHeights[index] || 0}
-                      scale={zoom / 100}
-                    />
-                    
-                    {/* Add a transparent overlay for click handling */}
+          <div 
+            ref={pdfContainerRef}
+            className="h-full w-full box-border"
+            style={{ 
+              cursor: isDragging ? 'grabbing' : (dragMode ? 'grab' : 'default'),
+              position: 'relative'
+            }}
+            onMouseDown={handleMouseDown}
+            onMouseMove={handleMouseMove}
+            onMouseUp={handleMouseUp}
+          >
+            <div style={{ 
+              transform: `scale(${zoom / 100})`, 
+              transformOrigin: 'top center',
+              transition: isDragging ? 'none' : 'transform 0.1s ease-out',
+              translate: `${position.x}px ${position.y}px`
+            }}>
+              <Document
+                file={url}
+                onLoadSuccess={onDocumentLoadSuccess}
+                onLoadError={onDocumentLoadError}
+                options={options}
+                loading={<div className="text-center py-4">Loading PDF...</div>}
+              >
+                {Array.from(new Array(numPages), (_el, index) => {
+                  const pageNumber = index + 1;
+                  return (
                     <div 
-                      className="absolute inset-0 cursor-pointer"
-                      onClick={(e) => handleTextLayerClick(e, pageNumber)}
-                      style={{ pointerEvents: onPositionClick ? 'auto' : 'none' }}
-                    />
-                  </div>
-                );
-              })}
-            </Document>
+                      key={`page_container_${pageNumber}`} 
+                      className="relative mb-4"
+                      ref={refCallbacks[index]}
+                    >
+                      <Page
+                        key={`page_${pageNumber}`}
+                        pageNumber={pageNumber}
+                        width={containerWidth}
+                        renderTextLayer={true}
+                        renderAnnotationLayer={true}
+                        onRenderSuccess={(page) => handlePageRenderSuccess(page, pageNumber)}
+                      />
+                      
+                      {/* Add highlight layer for each page */}
+                      <PdfHighlightLayer
+                        highlights={highlights}
+                        currentPage={pageNumber}
+                        containerWidth={containerWidth || 0}
+                        containerHeight={pageHeights[index] || 0}
+                        scale={zoom / 100}
+                        position={position}
+                      />
+                      
+                      {/* Add a transparent overlay for click handling */}
+                      <div 
+                        className="absolute inset-0"
+                        onClick={(e) => handleTextLayerClick(e, pageNumber)}
+                        style={{ 
+                          pointerEvents: onPositionClick && !isDragging && !dragMode ? 'auto' : 'none',
+                          cursor: 'default'
+                        }}
+                      />
+                    </div>
+                  );
+                })}
+              </Document>
+            </div>
           </div>
         )}
       </div>

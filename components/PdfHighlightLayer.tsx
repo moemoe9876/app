@@ -14,6 +14,7 @@ interface PdfHighlightLayerProps {
   containerWidth: number;
   containerHeight: number;
   scale: number;
+  position?: { x: number, y: number };
   className?: string;
 }
 
@@ -23,6 +24,7 @@ export function PdfHighlightLayer({
   containerWidth,
   containerHeight,
   scale,
+  position = { x: 0, y: 0 },
   className,
 }: PdfHighlightLayerProps) {
   // Filter highlights for the current page
@@ -47,7 +49,7 @@ export function PdfHighlightLayer({
         return (
           <div
             key={highlight.id}
-            className="absolute border-2 border-primary bg-primary/20 transition-all duration-200 animate-pulse"
+            className="absolute border-2 bg-primary/20 transition-all duration-200 animate-pulse"
             style={{
               left: `${left}px`,
               top: `${top}px`,
