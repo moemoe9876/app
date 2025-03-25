@@ -4,6 +4,7 @@ import { useState, useEffect } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { Button } from "@/components/ui/button";
+import { Separator } from "@/components/ui/separator";
 import { cn } from "@/lib/utils";
 import {
   ChevronLeft,
@@ -14,6 +15,7 @@ import {
   Home,
   Settings,
   User,
+  FileText,
 } from "lucide-react";
 import { Sheet, SheetContent } from "@/components/ui/sheet";
 
@@ -85,25 +87,33 @@ export function Sidebar({ open, onOpenChange, className }: SidebarProps) {
     <>
       {/* Mobile sidebar */}
       <Sheet open={open} onOpenChange={onOpenChange}>
-        <SheetContent side="left" className="w-[240px] sm:max-w-none">
-          <nav className="grid gap-2 text-lg font-medium">
-            {routes.map((route) => (
-              <Link
-                key={route.href}
-                href={route.href}
-                onClick={() => onOpenChange && onOpenChange(false)}
-                className={cn(
-                  "flex items-center gap-2 px-2 py-1 rounded-md hover:bg-accent",
-                  pathname === route.href
-                    ? "bg-accent text-accent-foreground"
-                    : "text-muted-foreground"
-                )}
-              >
-                <route.icon className="h-5 w-5" />
-                {route.label}
-              </Link>
-            ))}
-          </nav>
+        <SheetContent side="left" className="w-[240px] sm:max-w-none p-0">
+          <div className="flex h-16 items-center border-b px-4">
+            <Link href="/dashboard" className="flex items-center gap-2">
+              <FileText className="h-6 w-6 text-primary" />
+              <span className="font-bold">Ingestio.io</span>
+            </Link>
+          </div>
+          <div className="py-4">
+            <nav className="grid gap-1 px-2">
+              {routes.map((route) => (
+                <Link
+                  key={route.href}
+                  href={route.href}
+                  onClick={() => onOpenChange && onOpenChange(false)}
+                  className={cn(
+                    "flex items-center gap-3 rounded-md px-3 py-2 text-sm font-medium hover:bg-accent hover:text-accent-foreground transition-colors",
+                    pathname === route.href
+                      ? "bg-accent text-accent-foreground"
+                      : "text-muted-foreground"
+                  )}
+                >
+                  <route.icon className="h-4 w-4" />
+                  {route.label}
+                </Link>
+              ))}
+            </nav>
+          </div>
         </SheetContent>
       </Sheet>
 
@@ -111,36 +121,48 @@ export function Sidebar({ open, onOpenChange, className }: SidebarProps) {
       <aside 
         className={cn(
           "fixed top-16 z-30 hidden h-[calc(100vh-4rem)] shrink-0 md:sticky md:block transition-all duration-300 ease-in-out border-r bg-background",
-          collapsed ? "w-[60px]" : "w-[240px]",
+          collapsed ? "w-[var(--sidebar-width-collapsed)]" : "w-[var(--sidebar-width)]",
           className
         )}
       >
-        <div className="flex items-center justify-between p-4 border-b">
-          {!collapsed && <h2 className="font-semibold">Ingestio.io</h2>}
-          <Button variant="ghost" size="icon" onClick={toggleSidebar} className={collapsed ? "mx-auto" : "ml-auto"}>
+        <div className="flex h-14 items-center justify-between p-4 border-b">
+          {!collapsed && 
+            <Link href="/dashboard" className="flex items-center gap-2 font-semibold">
+              <FileText className="h-5 w-5 text-primary" />
+              <span>Ingestio.io</span>
+            </Link>
+          }
+          <Button 
+            variant="ghost" 
+            size="icon" 
+            onClick={toggleSidebar} 
+            className={collapsed ? "mx-auto" : "ml-auto"}
+          >
             {collapsed ? <ChevronRight size={16} /> : <ChevronLeft size={16} />}
           </Button>
         </div>
         
         <nav className="flex-1 py-4">
-          <ul className="space-y-1 px-2">
-            {routes.map((route) => (
-              <li key={route.href}>
+          <div className="px-3">
+            <div className="space-y-1">
+              {routes.map((route) => (
                 <Link
+                  key={route.href}
                   href={route.href}
                   className={cn(
-                    "flex items-center gap-3 px-3 py-2 rounded-md text-sm font-medium transition-colors",
+                    "flex items-center gap-3 rounded-md px-3 py-2 text-sm font-medium transition-colors",
                     "hover:bg-accent hover:text-accent-foreground",
                     pathname === route.href ? "bg-accent text-accent-foreground" : "text-muted-foreground",
                     collapsed && "justify-center"
                   )}
+                  title={collapsed ? route.label : undefined}
                 >
-                  <route.icon className="h-4 w-4" />
+                  <route.icon className="size-4" />
                   {!collapsed && <span>{route.label}</span>}
                 </Link>
-              </li>
-            ))}
-          </ul>
+              ))}
+            </div>
+          </div>
         </nav>
       </aside>
     </>

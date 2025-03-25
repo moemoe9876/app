@@ -8,46 +8,46 @@ import Link from "next/link";
 
 export default function DashboardPage() {
   return (
-    <div className="flex flex-col gap-6">
+    <div className="flex flex-col gap-6 p-6">
       <div className="flex flex-col gap-2">
-        <h1 className="text-3xl font-bold tracking-tight">Dashboard</h1>
+        <h1 className="text-3xl font-bold tracking-tight text-foreground dark:text-foreground">Dashboard</h1>
         <p className="text-muted-foreground">
           Welcome to Ingestio.io! Streamline your workflow with automated data extraction.
         </p>
       </div>
       
       <div className="flex flex-col gap-4 md:flex-row">
-        <Card className="flex-1">
+        <Card className="flex-1 border-border">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Total Documents</CardTitle>
             <FileText className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">1</div>
+            <div className="text-2xl font-bold text-card-foreground">1</div>
             <p className="text-xs text-muted-foreground">
               +0% from last month
             </p>
           </CardContent>
         </Card>
-        <Card className="flex-1">
+        <Card className="flex-1 border-border">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Processed Documents</CardTitle>
             <History className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">1</div>
+            <div className="text-2xl font-bold text-card-foreground">1</div>
             <p className="text-xs text-muted-foreground">
               100% completion rate
             </p>
           </CardContent>
         </Card>
-        <Card className="flex-1">
+        <Card className="flex-1 border-border">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Time Saved</CardTitle>
             <BarChart3 className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">3 min</div>
+            <div className="text-2xl font-bold text-card-foreground">3 min</div>
             <p className="text-xs text-muted-foreground">
               Estimated time savings
             </p>
@@ -56,7 +56,7 @@ export default function DashboardPage() {
       </div>
 
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-7">
-        <Card className="col-span-4">
+        <Card className="col-span-4 border-border">
           <CardHeader>
             <CardTitle>Quick Actions</CardTitle>
             <CardDescription>
@@ -69,7 +69,7 @@ export default function DashboardPage() {
                 <FileUp className="h-5 w-5 text-primary" />
               </div>
               <div className="space-y-1 flex-1">
-                <p className="text-sm font-medium leading-none">
+                <p className="text-sm font-medium leading-none text-card-foreground">
                   Upload a new document
                 </p>
                 <p className="text-sm text-muted-foreground">
@@ -85,14 +85,14 @@ export default function DashboardPage() {
                 <History className="h-5 w-5 text-primary" />
               </div>
               <div className="space-y-1 flex-1">
-                <p className="text-sm font-medium leading-none">
+                <p className="text-sm font-medium leading-none text-card-foreground">
                   View document history
                 </p>
                 <p className="text-sm text-muted-foreground">
                   Access your previously processed documents
                 </p>
               </div>
-              <Button variant="outline" asChild>
+              <Button variant="outline" asChild className="border-border">
                 <Link href="/dashboard/history">View</Link>
               </Button>
             </div>
@@ -101,20 +101,20 @@ export default function DashboardPage() {
                 <BarChart3 className="h-5 w-5 text-primary" />
               </div>
               <div className="space-y-1 flex-1">
-                <p className="text-sm font-medium leading-none">
+                <p className="text-sm font-medium leading-none text-card-foreground">
                   Performance metrics
                 </p>
                 <p className="text-sm text-muted-foreground">
                   See detailed analytics about your usage
                 </p>
               </div>
-              <Button variant="outline" asChild>
+              <Button variant="outline" asChild className="border-border">
                 <Link href="/dashboard/metrics">View</Link>
               </Button>
             </div>
           </CardContent>
         </Card>
-        <Card className="col-span-3">
+        <Card className="col-span-3 border-border">
           <CardHeader>
             <CardTitle>Recent Activity</CardTitle>
             <CardDescription>
@@ -125,7 +125,7 @@ export default function DashboardPage() {
             <div className="space-y-8">
               <div className="flex items-center">
                 <div className="space-y-1 flex-1">
-                  <p className="text-sm font-medium leading-none">
+                  <p className="text-sm font-medium leading-none text-card-foreground">
                     Invoice-2023.pdf
                   </p>
                   <p className="text-xs text-muted-foreground">
@@ -138,7 +138,7 @@ export default function DashboardPage() {
               </div>
               <div className="flex items-center">
                 <div className="space-y-1 flex-1">
-                  <p className="text-sm font-medium leading-none">
+                  <p className="text-sm font-medium leading-none text-card-foreground">
                     No other recent activity
                   </p>
                   <p className="text-xs text-muted-foreground">

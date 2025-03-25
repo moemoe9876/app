@@ -1,0 +1,151 @@
+---
+description: Follow these general rules for all parts of the project.
+globs: *
+---
+# Project Instructions
+
+Use specification and guidelines as you build the app.
+
+Write the complete code for every step. Do not get lazy.
+
+Your goal is to completely finish whatever I ask for.
+
+You will see `<ai_context>` tags in the code. These are context tags that you should use to help you understand the codebase.
+
+# Project Overview: Ingestio.io - AI-Powered Document Data Extraction Platform
+
+**Ingestio.io** is a web application designed to streamline document workflows by automating the extraction of structured data from various document types. Built on a modern and robust tech stack, it aims to provide a user-friendly, efficient, and secure solution for individuals and businesses looking to eliminate manual data entry and unlock valuable insights from their documents.
+
+**Core Purpose:**
+
+The primary goal of Ingestio.io is to empower users to effortlessly convert unstructured data trapped in documents (like PDFs, invoices, reports, etc.) into structured, actionable data. This is achieved through the power of AI, specifically Google's Gemini models, combined with a user-centric web interface.
+
+**Target Users:**
+
+Ingestio.io is designed for a broad range of users, including:
+
+*   **Businesses of all sizes:**  To automate invoice processing, expense management, contract analysis, and other document-heavy workflows, saving time and reducing errors.
+*   **Data Analysts and Researchers:** To quickly extract data from reports, research papers, and datasets embedded in documents for analysis and insights.
+*   **Individuals:** To organize personal documents like receipts, financial statements, and important records for better management and accessibility.
+
+**Key Features:**
+
+*   **Document Upload & Preview:** Users can easily upload PDF documents through a drag-and-drop interface or file browser. A built-in PDF viewer allows for document preview and verification.
+*   **AI-Powered Data Extraction:** Leveraging Google Gemini AI, the application intelligently extracts structured data from uploaded documents based on user-defined instructions or pre-configured templates.
+*   **Dynamic Schema Generation:** The system can dynamically generate JSON schemas based on user prompts, allowing for flexible and adaptable data extraction for various document types.
+*   **Interactive Data Review & Verification Page:** A two-panel interface enables users to review extracted data alongside the original document. Features include:
+    *   Data highlighting in the document viewer, linked to data fields.
+    *   Confidence scores for extracted data, visually represented.
+    *   Inline editing capabilities for correcting extraction errors.
+    *   Data filtering based on confidence levels.
+*   **Data Export:** Users can export the finalized, extracted data in multiple formats (JSON, CSV, Excel) for seamless integration with other systems or tools.
+*   **Document History & Management:** A dedicated history page provides a log of all processed documents, allowing users to revisit, re-download, or manage their document history.
+*   **User Dashboard & Performance Metrics:** A personalized dashboard provides a central hub for users to:
+    *   Track document processing status and history.
+    *   Access key performance metrics (document counts, processing times, potential savings).
+    *   Quickly access core functionalities like document upload and review.
+*   **User Authentication & Security:** Firebase Authentication ensures secure user account management and access control.
+*   **Customizable Settings:** Users can manage their profile, application settings, and export preferences.
+*   **Responsive & Accessible UI:** Built with Next.js, Tailwind CSS, and Shadcn/ui, the application offers a modern, responsive, and accessible user interface across devices.
+
+**Technology Highlights:**
+
+*   **Cutting-Edge Frontend:** Utilizes the latest Next.js App Router, React 19, and TypeScript for a performant and maintainable frontend. Shadcn/ui and Tailwind CSS provide a visually appealing and consistent design system.
+*   **Powerful Backend:** Leverages Next.js Server Actions and API routes for server-side logic, combined with the scalability and flexibility of Firebase Firestore for data storage and Firebase Storage for file management.
+*   **AI-Driven Extraction:** Integrates Google Gemini AI for state-of-the-art document understanding and data extraction capabilities.
+*   **Scalable & Secure Infrastructure:** Deployed on Vercel with Firebase backend, ensuring scalability, reliability, and robust security.
+
+**Project Structure (Key Directories):**
+
+*   `actions/`: Server Actions for backend logic and data mutations.
+*   `app/`: Next.js App Router structure for routes, pages, and layouts.
+*   `components/`: Reusable UI components built with Shadcn/ui and Tailwind CSS.
+*   `lib/`: Core libraries and utilities (Firebase initialization, analytics, helper functions).
+*   `rules/`: Project rules and guidelines for development consistency.
+*   `types/`: TypeScript type definitions for enhanced code maintainability.
+
+**Overall Goal:**
+
+Ingestio.io aims to be the go-to platform for users seeking to automate document data extraction, improve workflow efficiency, and gain valuable insights from their documents, all within a user-friendly and secure environment. It leverages a modern tech stack and AI capabilities to deliver a powerful and accessible solution for document processing needs.
+
+## Tech Stack
+
+- Frontend: Next.js, Tailwind, Shadcn, Framer Motion
+- Backend: Firebase Firestore, Server Actions
+- Auth: Firebase Authentication
+- Payments: Stripe
+- Analytics: PostHog
+- Deployment: Vercel
+
+## Project Structure
+
+- `actions` - Server actions
+  - `db` - Database related actions
+  - Other actions
+- `app` - Next.js app router
+  - `api` - API routes
+  - `route` - An example route
+    - `_components` - One-off components for the route
+    - `layout.tsx` - Layout for the route
+    - `page.tsx` - Page for the route
+- `components` - Shared components
+  - `ui` - UI components
+  - `utilities` - Utility components
+- `db` - Database (Not used directly with Firebase Firestore, but can be used for schema definitions if needed)
+  - `schema` - Database schemas (For type definitions, not Drizzle schema)
+- `lib` - Library code
+  - `hooks` - Custom hooks
+- `prompts` - Prompt files
+- `public` - Static assets
+- `types` - Type definitions
+
+## Rules
+
+Follow these rules when building the app.
+
+### General Rules
+
+- Use `@` to import anything from the app unless otherwise specified
+- Use kebab case for all files and folders unless otherwise specified
+- Don't update shadcn components unless otherwise specified
+- **Firebase Initialization:** Initialize Firebase only once in your application, ideally in a `firebaseConfig.ts` file within the `lib` directory and import it where needed.
+- **Environment Configuration:**  Use environment variables for all Firebase configuration settings and API keys.
+- **Clean Code:** Write clean, modular, and well-commented code. Follow SOLID principles where applicable.
+- **Testing:** Implement unit and integration tests for critical functionalities, especially server actions and API routes.
+
+#### Env Rules
+
+- If you update environment variables, update the `.env.example` file
+- All environment variables should go in `.env.local`
+- Do not expose environment variables to the frontend
+- Use `NEXT_PUBLIC_` prefix for environment variables that need to be accessed from the frontend
+- You may import environment variables in server actions and components by using `process.env.VARIABLE_NAME`
+
+#### Type Rules
+
+Follow these rules when working with types.
+
+- When importing types, use `@/types`
+- Name files like `example-types.ts`
+- All types should go in `types`
+- Make sure to export the types in `types/index.ts`
+- Prefer interfaces over type aliases
+- If referring to db types, use `@/db/schema` such as `SelectTodo` from `todos-schema.ts` (adjust this if you define Firestore data types in schema)
+
+An example of a type:
+
+`types/actions-types.ts`
+
+```ts
+export type ActionState<T> =
+  | { isSuccess: true; message: string; data: T }
+  | { isSuccess: false; message: string; data?: never }
+```
+
+And exporting it:
+
+`types/index.ts`
+
+```ts
+export * from "./actions-types"
+```

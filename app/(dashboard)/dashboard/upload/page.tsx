@@ -136,10 +136,10 @@ export default function UploadPage() {
 
   const renderUploadStage = () => {
     return (
-      <div className="space-y-6">
-        <div className="flex flex-col items-center justify-center text-center mb-6">
-          <h3 className="text-xl font-medium mb-2">Upload Document</h3>
-          <p className="text-muted-foreground max-w-md">
+      <div className="space-y-8">
+        <div className="flex flex-col items-center justify-center text-center mb-8">
+          <h3 className="text-2xl font-medium mb-3">Upload Document</h3>
+          <p className="text-muted-foreground mx-auto" style={{ maxWidth: "calc(28rem * 1.2)" }}>
             Upload a document for automated data extraction. We support PDF files up to 100MB.
           </p>
         </div>
@@ -150,11 +150,12 @@ export default function UploadPage() {
           initialPrompt={extractionPrompt}
         />
         
-        <div className="flex justify-center mt-6">
+        <div className="flex justify-center mt-8">
           <Button 
             onClick={handleUpload} 
             disabled={!file || loading}
-            className="w-full max-w-xs"
+            className="w-full" 
+            style={{ maxWidth: "calc(20rem * 1.2)" }}
           >
             {loading ? (
               <>
@@ -175,37 +176,37 @@ export default function UploadPage() {
 
   const renderProcessingStage = () => {
     return (
-      <div className="space-y-6 py-8">
+      <div className="space-y-8">
         <div className="flex flex-col items-center justify-center text-center">
-          <RotateCw className="h-12 w-12 text-primary animate-spin mb-4" />
-          <h3 className="text-xl font-medium mb-2">Processing Your Document</h3>
-          <p className="text-muted-foreground max-w-md">
+          <RotateCw className="h-14 w-14 text-primary animate-spin mb-5" />
+          <h3 className="text-2xl font-medium mb-3">Processing Your Document</h3>
+          <p className="text-muted-foreground mx-auto" style={{ maxWidth: "calc(28rem * 1.2)" }}>
             We're extracting data from your document. This may take a moment depending on the document size and complexity.
           </p>
         </div>
         
-        <div className="space-y-2 max-w-md mx-auto">
+        <div className="space-y-3 mx-auto" style={{ maxWidth: "calc(28rem * 1.2)" }}>
           <Progress value={progress} className="h-2" />
-          <div className="flex justify-between text-xs text-muted-foreground">
+          <div className="flex justify-between text-sm text-muted-foreground">
             <span>Extracting data...</span>
             <span>{Math.round(progress)}%</span>
           </div>
         </div>
         
-        <div className="space-y-4 max-w-md mx-auto">
-          <div className="flex items-center gap-2">
+        <div className="space-y-4 mx-auto pt-2" style={{ maxWidth: "calc(28rem * 1.2)" }}>
+          <div className="flex items-center gap-3">
             <CheckCircle2 className={`h-5 w-5 ${progress >= 30 ? "text-green-500" : "text-muted-foreground"}`} />
             <span className={progress >= 30 ? "text-foreground" : "text-muted-foreground"}>
               Document uploaded
             </span>
           </div>
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-3">
             <CheckCircle2 className={`h-5 w-5 ${progress >= 60 ? "text-green-500" : "text-muted-foreground"}`} />
             <span className={progress >= 60 ? "text-foreground" : "text-muted-foreground"}>
               Document analyzed
             </span>
           </div>
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-3">
             <CheckCircle2 className={`h-5 w-5 ${progress >= 90 ? "text-green-500" : "text-muted-foreground"}`} />
             <span className={progress >= 90 ? "text-foreground" : "text-muted-foreground"}>
               Data extraction complete
@@ -218,20 +219,20 @@ export default function UploadPage() {
 
   const renderCompleteStage = () => {
     return (
-      <div className="space-y-6 py-8">
+      <div className="space-y-8">
         <div className="flex flex-col items-center justify-center text-center">
-          <CheckCircle2 className="h-12 w-12 text-green-500 mb-4" />
-          <h3 className="text-xl font-medium mb-2">Document Processed Successfully</h3>
-          <p className="text-muted-foreground max-w-md">
+          <CheckCircle2 className="h-14 w-14 text-green-500 mb-5" />
+          <h3 className="text-2xl font-medium mb-3">Document Processed Successfully</h3>
+          <p className="text-muted-foreground mx-auto" style={{ maxWidth: "calc(28rem * 1.2)" }}>
             Your document has been processed and the data has been extracted. You can now review and verify the extracted information.
           </p>
         </div>
         
-        <div className="flex flex-col gap-4 items-center justify-center mt-6">
-          <Button onClick={handleGoToReview} className="w-full max-w-xs">
+        <div className="flex flex-col gap-4 items-center justify-center mt-2">
+          <Button onClick={handleGoToReview} className="w-full" style={{ maxWidth: "calc(20rem * 1.2)" }}>
             Review Extracted Data
           </Button>
-          <Button variant="outline" onClick={handleReset} className="w-full max-w-xs">
+          <Button variant="outline" onClick={handleReset} className="w-full" style={{ maxWidth: "calc(20rem * 1.2)" }}>
             Upload Another Document
           </Button>
         </div>
@@ -241,17 +242,17 @@ export default function UploadPage() {
 
   const renderErrorStage = () => {
     return (
-      <div className="space-y-6 py-8">
-        <Alert variant="destructive">
-          <AlertCircle className="h-4 w-4" />
-          <AlertTitle>Error</AlertTitle>
-          <AlertDescription>
+      <div className="space-y-8">
+        <Alert variant="destructive" className="mb-6">
+          <AlertCircle className="h-5 w-5" />
+          <AlertTitle className="text-base font-medium">Error</AlertTitle>
+          <AlertDescription className="mt-1">
             {error || "There was an error processing your document. Please try again."}
           </AlertDescription>
         </Alert>
         
-        <div className="flex justify-center mt-6">
-          <Button variant="outline" onClick={handleReset}>
+        <div className="flex justify-center">
+          <Button variant="outline" onClick={handleReset} className="w-full" style={{ maxWidth: "calc(20rem * 1.2)" }}>
             Try Again
           </Button>
         </div>
@@ -260,18 +261,20 @@ export default function UploadPage() {
   };
 
   const renderContent = () => {
-    switch (uploadStage) {
-      case UploadStage.UPLOAD:
-        return renderUploadStage();
-      case UploadStage.PROCESSING:
-        return renderProcessingStage();
-      case UploadStage.COMPLETE:
-        return renderCompleteStage();
-      case UploadStage.ERROR:
-        return renderErrorStage();
-      default:
-        return renderUploadStage();
-    }
+    return (
+      <div className="w-full">
+        <Card className="w-full mx-auto overflow-hidden" style={{ maxWidth: "calc(42rem * 1.2)" }}>
+          <CardContent className="p-0">
+            <div className="px-6 py-8 sm:px-8">
+              {uploadStage === UploadStage.UPLOAD && renderUploadStage()}
+              {uploadStage === UploadStage.PROCESSING && renderProcessingStage()}
+              {uploadStage === UploadStage.COMPLETE && renderCompleteStage()}
+              {uploadStage === UploadStage.ERROR && renderErrorStage()}
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+    );
   };
 
   return (
@@ -283,11 +286,7 @@ export default function UploadPage() {
         </p>
       </div>
 
-      <Card>
-        <CardContent className="pt-6">
-          {renderContent()}
-        </CardContent>
-      </Card>
+      {renderContent()}
     </div>
   );
 } 

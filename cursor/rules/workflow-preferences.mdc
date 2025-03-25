@@ -1,0 +1,39 @@
+---
+description: workflow preferences
+globs: 
+alwaysApply: false
+---
+# Workflow Preferences
+Date Last Modified: March 20, 2025
+
+## Development Approach
+- Focus on the areas of code relevant to the task
+- Do not touch code that is unrelated to the task
+- Make incremental changes with frequent testing
+- Implement features one at a time with proper testing
+- Avoid making major architectural changes unless explicitly instructed
+- Always consider the impact of changes on other parts of the codebase
+
+## Testing Strategy
+- Write end-to-end tests for critical user flows
+- Test all major functionality thoroughly
+- Run tests after every significant change
+- Fix failing tests by addressing the root cause, not by changing the test
+- Implement proper test fixtures and mocks
+- Test edge cases and error scenarios
+
+## Code Quality
+- Follow consistent coding patterns throughout the codebase
+- Use proper error handling for all operations
+- Implement proper logging for debugging
+- Write clear, concise comments for complex logic
+- Use descriptive variable and function names
+- Refactor code when it becomes too complex or lengthy
+
+## Performance Optimization
+- Optimize only after functionality is working correctly
+- Focus on user-facing performance first
+- Implement proper caching strategies
+- Optimize database queries for efficiency
+- Use proper indexing for frequently queried data
+- Implement proper pagination for large datasets

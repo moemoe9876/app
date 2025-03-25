@@ -1,0 +1,44 @@
+---
+description: 
+globs: 
+alwaysApply: false
+---
+# Coding Pattern Preferences
+Date Last Modified: March 20, 2025
+
+## General Principles
+- Always prefer simple solutions over complex ones
+- Avoid code duplication by checking for similar functionality in the codebase
+- Keep the codebase clean and organized with consistent patterns
+- Refactor files that exceed 300 lines of code
+- Use TypeScript for type safety throughout the application
+- Follow React best practices and hooks patterns
+
+## Code Structure
+- Organize components logically by feature and function
+- Keep component files focused on a single responsibility
+- Use proper naming conventions (PascalCase for components, camelCase for functions)
+- Implement proper error handling for all async operations
+- Separate business logic from UI components when appropriate
+- Use custom hooks for reusable logic
+
+## Performance Considerations
+- Implement proper memoization for expensive calculations
+- Use React.memo for components that render frequently with the same props
+- Optimize image loading with Next.js Image component
+- Implement proper code splitting and lazy loading
+- Avoid unnecessary re-renders by using proper state management
+
+## Testing
+- Write tests for all major functionality
+- Focus on end-to-end tests for critical user flows
+- Implement proper mocking for Firebase services in tests
+- Ensure tests are maintainable and not brittle
+- Test edge cases and error scenarios
+
+## Environment Handling
+- Write code that works across different environments (dev, test, prod)
+- Never hardcode environment-specific values
+- Use environment variables for configuration
+- Never commit sensitive information to the repository
+- Never overwrite .env files without explicit confirmation

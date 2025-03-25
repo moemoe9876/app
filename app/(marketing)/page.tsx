@@ -365,7 +365,7 @@ export default function LandingPage() {
                       className="h-8 w-8 rounded-full border-2 border-background bg-muted overflow-hidden"
                     >
                       <img
-                        src={`/placeholder.svg?height=32&width=32&text=${i}`}
+                        src={`/landing/avatar${i}.jpg`}
                         alt={`User ${i}`}
                         className="h-full w-full object-cover"
                       />
@@ -397,11 +397,11 @@ export default function LandingPage() {
                   </div>
                   <div className="text-xs font-medium ml-2">Ingestio.io Dashboard</div>
                 </div>
-                <div className="pt-12 pb-4 px-4">
+                <div className="pt-12 pb-4 px-4 h-[400px]">
                   <img
-                    src="/landing/dashboard.jpg"
+                    src="/landing/ingestio_dashboard.png"
                     alt="Ingestio.io Dashboard"
-                    className="rounded-md w-full"
+                    className="rounded-md w-full h-full object-fill"
                     width={600}
                     height={500}
                   />
@@ -436,23 +436,29 @@ export default function LandingPage() {
             transition={{ delay: 0.8 }}
             className="text-center text-sm font-medium text-muted-foreground mb-6"
           >
-            TRUSTED BY INNOVATIVE COMPANIES
+            TRUSTED BY INNOVATIVE TECH STARTUPS
           </motion.p>
           <div className="flex flex-wrap justify-center gap-x-12 gap-y-8">
-            {[1, 2, 3, 4, 5].map((i) => (
+            {[
+              { id: 1, name: "Supabase" },
+              { id: 2, name: "Vercel" },
+              { id: 3, name: "Planetscale" },
+              { id: 4, name: "Retool" },
+              { id: 5, name: "Railway" }
+            ].map((company) => (
               <motion.div
-                key={i}
+                key={company.id}
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: 0.8 + i * 0.1 }}
-                className="h-8 opacity-70 grayscale transition-all hover:opacity-100 hover:grayscale-0"
+                transition={{ delay: 0.8 + company.id * 0.1 }}
+                className="h-12 transition-all hover:opacity-100"
               >
                 <img
-                  src={`/landing/logo${i}.png`}
-                  alt={`Company ${i}`}
-                  className="h-full"
+                  src={`/landing/company${company.id}.png`}
+                  alt={`${company.name} logo`}
+                  className="h-full w-auto object-contain"
                   width={120}
-                  height={32}
+                  height={48}
                 />
               </motion.div>
             ))}

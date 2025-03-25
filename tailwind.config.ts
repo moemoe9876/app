@@ -46,6 +46,11 @@ export default {
           DEFAULT: "hsl(var(--card))",
           foreground: "hsl(var(--card-foreground))",
         },
+        "sidebar-background": "var(--sidebar-background)",
+        "sidebar-foreground": "var(--sidebar-foreground)",
+        "sidebar-muted-foreground": "var(--sidebar-muted-foreground)",
+        "sidebar-accent": "var(--sidebar-accent)",
+        "sidebar-accent-foreground": "var(--sidebar-accent-foreground)",
       },
       backgroundImage: {
         "grid-small-black":
@@ -57,6 +62,7 @@ export default {
         lg: "var(--radius)",
         md: "calc(var(--radius) - 2px)",
         sm: "calc(var(--radius) - 4px)",
+        large: "var(--radius-large)",
       },
       keyframes: {
         "accordion-down": {

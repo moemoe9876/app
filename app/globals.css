@@ -2,83 +2,225 @@
 @tailwind components;
 @tailwind utilities;
 
-body {
-  font-family: Arial, Helvetica, sans-serif;
-}
-
-@layer utilities {
-  .text-balance {
-    text-wrap: balance;
-  }
-}
-
 @layer base {
-    :root {
-      --background: 0 0% 100%;
-      --foreground: 240, 3%, 12%;
-      --card: 0 0% 100%;
-      --card-foreground: 240, 3%, 12%;
-      --popover: 0 0% 100%;
-      --popover-foreground: 240, 3%, 12%;
-      --primary: 214, 82%, 51%;
-      --primary-foreground: 0 0% 98%;
-      --secondary: 240 4.8% 95.9%;
-      --secondary-foreground: 214, 82%, 51%;
-      --muted: 240 4.8% 95.9%;
-      --muted-foreground: 240 3.8% 46.1%;
-      --accent: 240 4.8% 95.9%;
-      --accent-foreground: 214, 82%, 51%;
-      --destructive: 0 84.2% 60.2%;
-      --destructive-foreground: 0 0% 98%;
-      --border: 240 5.9% 90%;
-      --input: 240 5.9% 90%;
-      --ring: 214, 82%, 51%;
-      --radius: 0.5rem;
-      --chart-1: 12 76% 61%;
-      --chart-2: 173 58% 39%;
-      --chart-3: 197 37% 24%;
-      --chart-4: 43 74% 66%;
-      --chart-5: 27 87% 67%;
-    }
-  
-    .dark {
-      --background: 240 3% 12%;
-      --foreground: 0 0% 98%;
-      --card: 220 7% 8%;
-      --card-foreground: 0 0% 98%;
-      --popover: 220 7% 8%;
-      --popover-foreground: 0 0% 98%;
-      --primary: 217 91% 60%;
-      --primary-foreground: 0 0% 98%;
-      --secondary: 240 3% 12%;
-      --secondary-foreground: 0 0% 98%;
-      --muted: 240 3% 12%;
-      --muted-foreground: 215 20.2% 65.1%;
-      --accent: 240 3% 12%;
-      --accent-foreground: 0 0% 98%;
-      --destructive: 0 62.8% 30.6%;
-      --destructive-foreground: 0 0% 98%;
-      --border: 225 9% 15%;
-      --input: 225 9% 15%;
-      --ring: 224 76.3% 48%;
-      --chart-1: 220 70% 50%;
-      --chart-2: 160 60% 45%;
-      --chart-3: 30 80% 55%;
-      --chart-4: 280 65% 60%;
-      --chart-5: 340 75% 55%;
-    }
+  :root {
+    /* Base colors */
+    --background: 0 0% 100%; /* White main content background */
+    --foreground: 0 0% 15%;
+    --card: 0 0% 100%;
+    --card-foreground: 0 0% 15%;
+    --popover: 0 0% 100%;
+    --popover-foreground: 0 0% 15%;
+    --primary: 0 0% 35%;
+    --primary-foreground: 0 0% 98%;
+    --secondary: 0 0% 94%;
+    --secondary-foreground: 0 0% 40%;
+    --muted: 0 0% 94%;
+    --muted-foreground: 0 0% 45%;
+    --accent: 0 0% 94%;
+    --accent-foreground: 0 0% 40%;
+    --destructive: 0 84% 60%;
+    --destructive-foreground: 0 0% 98%;
+    --border: 0 0% 90%;
+    --input: 0 0% 90%;
+    --ring: 0 0% 40%;
+    --radius: 0.5rem;
+    --radius-large: 12px;
+    
+    /* Chart colors */
+    --chart-1: 0 0% 60%;
+    --chart-2: 0 0% 40%;
+    --chart-3: 0 0% 20%;
+    --chart-4: 0 0% 80%;
+    --chart-5: 142 70% 45%;
+    
+    /* Spacing variables */
+    --spacing: 0.25rem;
+    --font-sans: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+    
+    /* Color neutral variables for themes */
+    --color-neutral-50: hsl(0, 0%, 98%);
+    --color-neutral-100: hsl(0, 0%, 96%);
+    --color-neutral-200: hsl(0, 0%, 90%);
+    --color-neutral-300: hsl(0, 0%, 80%);
+    --color-neutral-400: hsl(0, 0%, 65%);
+    --color-neutral-500: hsl(0, 0%, 45%);
+    --color-neutral-600: hsl(0, 0%, 35%);
+    --color-neutral-700: hsl(0, 0%, 25%);
+    --color-neutral-800: hsl(0, 0%, 20%);
+    --color-neutral-900: hsl(0, 0%, 15%);
+    --color-neutral-950: hsl(0, 0%, 10%);
+    
+    /* Success color (used sparingly) */
+    --color-success-50: hsl(142, 80%, 97%);
+    --color-success-500: hsl(142, 70%, 45%);
+    --color-success-600: hsl(142, 70%, 35%);
+    
+    /* Sidebar specific colors for light mode - Updated for light theme */
+    --sidebar-background: hsl(0, 0%, 94%); /* #F0F0F0 - Grayish White */
+    --sidebar-foreground: var(--color-neutral-900);
+    --sidebar-muted-foreground: var(--color-neutral-500);
+    --sidebar-accent: hsl(0, 0%, 90%); /* Adjusted accent for new background */
+    --sidebar-accent-foreground: var(--color-neutral-900);
+    
+    /* Dashboard specific variables */
+    --header-height: calc(var(--spacing) * 12 + 1px);
+    --sidebar-width: 240px;
+    --sidebar-width-collapsed: 60px;
   }
-  
-@layer base {
+
+  .dark {
+    /* Dark mode base colors - Updated with complementary colors to Space Gray */
+    --background: 210 5% 8%; /* Subtle blue-black that complements Space Gray */
+    --foreground: 210 15% 98%;
+    --card: 210 5% 15%;
+    --card-foreground: 210 15% 98%;
+    --popover: 210 5% 15%;
+    --popover-foreground: 210 15% 98%;
+    --primary: 210 15% 50%;
+    --primary-foreground: 210 15% 5%;
+    --secondary: 210 5% 22%;
+    --secondary-foreground: 210 15% 98%;
+    --muted: 210 5% 22%;
+    --muted-foreground: 210 15% 65%;
+    --accent: 210 5% 25%;
+    --accent-foreground: 210 15% 98%;
+    --destructive: 0 65% 30%;
+    --destructive-foreground: 210 15% 98%;
+    --border: 210 5% 25%;
+    --input: 210 5% 25%;
+    --ring: 210 15% 65%;
+    --chart-1: 210 15% 75%;
+    --chart-2: 210 15% 55%;
+    --chart-3: 210 15% 35%;
+    --chart-4: 210 15% 95%;
+    --chart-5: 142 60% 40%;
+    
+    /* Sidebar specific colors for dark mode - Space Gray remains the same */
+    --sidebar-background: hsl(0, 0%, 20%); /* #333333 - Space Gray */
+    --sidebar-foreground: hsl(210, 15%, 90%);
+    --sidebar-muted-foreground: hsl(210, 15%, 65%);
+    --sidebar-accent: hsl(210, 5%, 25%); /* Adjusted accent for new background */
+    --sidebar-accent-foreground: hsl(210, 15%, 90%);
+  }
+
   * {
     @apply border-border;
   }
+
   body {
-    @apply bg-background text-foreground;
+    @apply bg-sidebar-background text-foreground;
+  }
+
+  /* Apply text colors to headings */
+  h1, h2, h3, h4, h5, h6 {
+    @apply text-foreground;
   }
 }
 
-h1,h2,h3,h4,h5,h6 {
-  @apply text-foreground dark:text-foreground;
+/* Define CSS container queries for responsive components */
+@layer utilities {
+  .size-8 {
+    width: 2rem;
+    height: 2rem;
+  }
+  
+  .size-4 {
+    width: 1rem;
+    height: 1rem;
+  }
+  
+  .size-5 {
+    width: 1.25rem;
+    height: 1.25rem;
+  }
+  
+  .text-balance {
+    text-wrap: balance;
+  }
+
+  .rounded-large {
+    border-radius: 16px;
+  }
+  
+  @media (min-width: 640px) {
+    .rounded-large {
+      border-radius: 16px;
+    }
+  }
+  
+  @media (min-width: 1024px) {
+    .rounded-large {
+      border-radius: 16px;
+    }
+  }
+}
+
+/* Dashboard container styles */
+.dashboard-container {
+  @apply w-full flex-1 bg-background overflow-hidden shadow-[0_5px_15px_rgba(0,0,0,0.05)] border border-border/30 flex flex-col;
+  min-width: 0;
+  max-width: 100%;
+  min-height: calc(100vh - 8px);
+  flex-shrink: 1;
+  margin: 4px 0;
+  border-radius: 12px;
+}
+
+.dark .dashboard-container {
+  @apply shadow-[0_5px_15px_rgba(0,0,0,0.15)];
+}
+
+/* Set the dashboard background to match sidebar */
+.dashboard-background {
+  @apply bg-sidebar-background;
+}
+
+/* Theme scaling for different screen sizes */
+.theme-scaled {
+  @media (min-width: 1024px) {
+    --radius: 0.6rem;
+    --radius-large: 12px;
+    --text-lg: 1.05rem;
+    --text-base: 0.85rem;
+    --text-sm: 0.8rem;
+    --spacing: 0.222222rem;
+  }
+
+  @media (min-width: 1280px) {
+    --radius-large: 12px;
+  }
+
+  @media (min-width: 1536px) {
+    --radius-large: 12px;
+  }
+
+  [data-slot="card"] {
+    --spacing: 0.16rem;
+  }
+
+  [data-slot="select-trigger"],
+  [data-slot="toggle-group-item"] {
+    --spacing: 0.222222rem;
+  }
+}
+
+/* Print mode - remove shadows and border radiuses */
+@media print {
+  * {
+    @apply !rounded-none !shadow-none;
+  }
+
+  body {
+    @apply !bg-white text-black;
+  }
+  
+  .dashboard-main {
+    @apply !w-full !ml-0;
+  }
+  
+  .dashboard-sidebar {
+    @apply !hidden;
+  }
 }
 

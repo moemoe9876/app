@@ -417,9 +417,11 @@ export default function ReviewPage({ params }: PageProps) {
               step={0.05}
               value={[confidenceThreshold]}
               onValueChange={(value) => setConfidenceThreshold(value[0])}
+              aria-label={`Confidence threshold, currently set to ${Math.round(confidenceThreshold * 100)}%`}
+              aria-labelledby="confidence-threshold-label"
             />
           </div>
-          <span className="text-sm font-medium w-12">
+          <span id="confidence-threshold-label" className="text-sm font-medium w-12">
             {Math.round(confidenceThreshold * 100)}%
           </span>
         </div>
@@ -429,14 +431,15 @@ export default function ReviewPage({ params }: PageProps) {
             variant={editMode ? "default" : "outline"}
             size="sm"
             onClick={() => setEditMode(!editMode)}
+            aria-pressed={editMode}
           >
             {editMode ? (
               <>
-                <Eye className="mr-2 h-4 w-4" /> View Mode
+                <Eye className="mr-2 h-4 w-4" aria-hidden="true" /> View Mode
               </>
             ) : (
               <>
-                <Edit className="mr-2 h-4 w-4" /> Edit Mode
+                <Edit className="mr-2 h-4 w-4" aria-hidden="true" /> Edit Mode
               </>
             )}
           </Button>
@@ -597,11 +600,12 @@ export default function ReviewPage({ params }: PageProps) {
           <Button
             onClick={handleConfirm}
             disabled={confirmed}
-            className={confirmed ? "bg-green-600 hover:bg-green-700" : ""}
+            className="bg-primary text-white hover:bg-primary/90 hover:text-white font-semibold"
+            aria-label="Confirm extracted data"
           >
             {confirmed ? (
               <>
-                <Check className="mr-2 h-4 w-4" /> Confirmed
+                <Check className="mr-2 h-4 w-4" aria-hidden="true" /> Confirmed
               </>
             ) : (
               "Confirm Data"

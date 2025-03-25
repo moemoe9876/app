@@ -57,12 +57,12 @@ export function FileUpload({ onFileSelect, onPromptChange, initialPrompt = "" }:
   });
 
   return (
-    <div className="w-full space-y-4">
-      <div className={`min-h-[150px] `}>
+    <div className="w-full space-y-6">
+      <div className={`min-h-[150px] mb-7`}>
         {!selectedFile ? (
           <div
             {...getRootProps()}
-            className={`min-h-[150px] p-4 rounded-lg
+            className={`min-h-[170px] p-6 rounded-lg
             ${isDragActive ? "bg-secondary/50" : "bg-secondary"}
             transition-colors duration-200 ease-in-out hover:bg-secondary/50
             border-2 border-dashed border-secondary
@@ -71,25 +71,25 @@ export function FileUpload({ onFileSelect, onPromptChange, initialPrompt = "" }:
           >
             <input {...getInputProps()} />
             <div className="flex flex-row items-center">
-              <UploadIcon className="w-8 h-8 text-primary mr-3 flex-shrink-0" />
+              <UploadIcon className="w-10 h-10 text-primary mr-4 flex-shrink-0" />
               <div className="">
-                <p className="text-sm font-medium text-foreground">
+                <p className="text-base font-medium text-foreground mb-1">
                   Drop your PDF here or click to browse
                 </p>
-                <p className="text-xs text-muted-foreground">
+                <p className="text-sm text-muted-foreground">
                   Maximum file size: 100MB
                 </p>
               </div>
             </div>
           </div>
         ) : (
-          <div className="flex my-auto flex-row items-center p-4 rounded-lg bg-secondary">
-            <FileIcon className="w-8 h-8 text-primary mr-3 flex-shrink-0" />
+          <div className="flex my-auto flex-row items-center p-5 rounded-lg bg-secondary">
+            <FileIcon className="w-9 h-9 text-primary mr-4 flex-shrink-0" />
             <div className="flex-grow min-w-0">
-              <p className="text-sm font-medium truncate text-foreground">
+              <p className="text-base font-medium truncate text-foreground mb-1">
                 {selectedFile?.name}
               </p>
-              <p className="text-xs text-muted-foreground">
+              <p className="text-sm text-muted-foreground">
                 {formatFileSize(selectedFile?.size ?? 0)}
               </p>
             </div>
@@ -108,16 +108,21 @@ export function FileUpload({ onFileSelect, onPromptChange, initialPrompt = "" }:
         )}
       </div>
 
-      <div className="space-y-2">
-        <Label htmlFor="extraction-prompt">Extraction Instructions</Label>
+      <div className="space-y-3 pt-1">
+        <Label htmlFor="extraction-prompt" className="text-sm font-medium text-muted-foreground mb-2 block">
+          Extraction Instructions
+        </Label>
         <Textarea
           id="extraction-prompt"
           placeholder="Describe what data you want to extract from this document (e.g., 'Extract invoice number, date, vendor name, line items, and total amount')"
           value={prompt}
           onChange={handlePromptChange}
-          className="min-h-[100px]"
+          className="min-h-[100px] mt-1 pt-3"
         />
-        <p className="text-xs text-muted-foreground">
+        <p className="text-sm text-muted-foreground/80 mt-2 flex items-center">
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="w-4 h-4 mr-1 text-muted-foreground">
+            <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a.75.75 0 000 1.5h.253a.25.25 0 01.244.304l-.459 2.066A1.75 1.75 0 0010.747 15H11a.75.75 0 000-1.5h-.253a.25.25 0 01-.244-.304l.459-2.066A1.75 1.75 0 009.253 9H9z" clipRule="evenodd" />
+          </svg>
           Provide specific instructions to improve extraction accuracy
         </p>
       </div>
