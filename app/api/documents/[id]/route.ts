@@ -45,10 +45,10 @@ interface ExtractionMetadata {
 
 export async function GET(
   request: Request,
-  { params }: { params: Promise<{ id: string }> }
+  { params }: { params: { id: string } }
 ) {
   try {
-    const { id } = await params;
+    const { id } = params;
     const documentId = id;
     const documentDir = join(UPLOAD_DIR, documentId);
     
@@ -90,6 +90,13 @@ export async function GET(
       const parsedData = JSON.parse(dataBuffer.toString());
       extractedData = parsedData.data;
       extractionMetadata = parsedData.metadata;
+      
+      return NextResponse.json({
+        documentId,
+        fileName,
+        extractedData,
+        metadata: extractionMetadata
+      });
     } else {
       // Otherwise, extract data from the document
       const startTime = Date.now();
@@ -165,144 +172,147 @@ export async function GET(
       let promptText = "";
 
       if (customPrompt) {
-        promptText = `USER'S REQUEST: ${customPrompt}`;
+        promptText = `USER'S REQUEST: ${customPrompt}
 
-        console.log("Using custom prompt for extraction:", customPrompt);
+IMPORTANT INSTRUCTIONS:
+1. You MUST return ONLY valid JSON. No text explanations.
+2. For each field requested, use the following format:
+{
+  "field_name": {
+    "value": "extracted value",
+    "confidence": 0.95
+  }
+}
+3. Example: If asked for "name and email", respond with:
+{
+  "name": {
+    "value": "John Smith",
+    "confidence": 0.95
+  },
+  "email": {
+    "value": "john@example.com",
+    "confidence": 0.9
+  }
+}
+
+Please extract the following fields from the document and return them as JSON:
+${customPrompt}`;
+
+        console.log("Using enhanced prompt for extraction:", promptText);
       } else {
-        promptText = "Extract all relevant information from this document.";
+        promptText = "Extract all relevant information from this document and return as JSON.";
         console.log("No custom prompt found, using default extraction instructions");
       }
-
-      // Add instruction for JSON format but without assuming structure
-      promptText += `
-        
-        IMPORTANT INSTRUCTIONS:
-        1. Extract ONLY the data explicitly requested in the user's prompt above.
-        2. Do NOT extract data that wasn't specifically mentioned in the user's prompt.
-        3. STRICT ENFORCEMENT: If the user requests specific fields like "sender" or "invoice_number", 
-           extract ONLY those fields and nothing else. DO NOT extract additional fields like "route" 
-           or "delivery date" unless they were explicitly requested.
-           
-           IMPORTANT: A request to extract "name of sender" should ONLY result in a "sender" field.
-           IMPORTANT: A request to extract "invoice details" should NOT extract unrelated fields like "salesperson".
-           
-        4. For each extracted field, include:
-          - The field value
-          ${extractionOptions.includeConfidence !== false ? "- A confidence score between 0 and 1" : ""}
-          ${extractionOptions.includePositions ? `- The location in the document as:
-            - page_number: The page where the information appears (1-indexed)
-            - bounding_box: [x1, y1, x2, y2] coordinates as percentages of page dimensions
-              where (x1,y1) is the top-left corner and (x2,y2) is the bottom-right corner` : ""}
-        
-        5. If a requested field is not found in the document, include it with a null value and low confidence score.
-        
-        6. For line items or tabular data (if specifically requested in the prompt):
-          - Extract these as structured arrays of objects
-          - Ensure each line item is a complete object with all its properties
-          - DO NOT use objects with [object Object] notation
-          - Use proper array syntax with each item as a discrete object with key-value pairs
-          - ALWAYS structure tabular data as an array where each row is an object with named fields
-          - Example for table data:
-            "table": [
-              { "column1": { "value": "row1value1", "confidence": 0.9 }, "column2": { "value": "row1value2", "confidence": 0.95 } },
-              { "column1": { "value": "row2value1", "confidence": 0.9 }, "column2": { "value": "row2value2", "confidence": 0.95 } }
-            ]
-          - Maintain proper parent-child relationships
-
-        Example format:
-        {
-          "field_name": {
-            "value": "extracted value"${extractionOptions.includeConfidence !== false ? ',\n            "confidence": 0.95' : ""}${extractionOptions.includePositions ? ',\n            "position": {\n              "page_number": 1,\n              "bounding_box": [10.5, 20.3, 30.2, 25.1]\n            }' : ""}
-          }
-        }
-
-        Return ONLY the data in valid JSON format without any markdown code block markers or explanations.
-      `;
       
       try {
-        const result = await model.generateContent([
-          {
-            text: promptText,
-          },
-          {
-            inlineData: {
-              mimeType: fileName.endsWith('.pdf') ? "application/pdf" : 
-                        (fileName.endsWith('.png') ? "image/png" : 
-                        (fileName.endsWith('.jpg') || fileName.endsWith('.jpeg') ? "image/jpeg" : "application/octet-stream")),
-              data: base64,
-            },
-          },
-        ]);
-        
-        const response = await result.response;
-        // Clean up the response text by removing markdown code block markers
-        const cleanText = response.text()
-          .replace(/^```json\s*/, '')
-          .replace(/^```\s*/, '')
-          .replace(/```\s*$/, '')
-          .trim();
-        
+        // Use Gemini API to extract data
+        let result;
         try {
-          extractedData = JSON.parse(cleanText) as ExtractedData;
+          result = await model.generateContent([
+            {
+              text: promptText,
+            },
+            {
+              inlineData: {
+                mimeType: fileName.endsWith('.pdf') ? "application/pdf" : 
+                          (fileName.endsWith('.png') ? "image/png" : 
+                          (fileName.endsWith('.jpg') || fileName.endsWith('.jpeg') ? "image/jpeg" : "application/octet-stream")),
+                data: base64,
+              },
+            },
+          ]);
+        } catch (apiError) {
+          console.error("Error calling Gemini API:", apiError);
           
-          // Add debugging for the extracted data
-          console.log("Custom prompt used:", customPrompt);
-          console.log("Fields actually extracted:", Object.keys(extractedData));
+          // Check for specific API errors
+          const errorMessage = (apiError as Error)?.message || "Unknown API error";
           
-          // Validate that the extracted fields match the requested fields
-          if (customPrompt) {
-            // A simple check to log if fields seem unrelated to prompt
-            const promptWords = customPrompt.toLowerCase()
-              .replace(/[^\w\s]/g, ' ')
-              .split(/\s+/)
-              .filter(word => word.length > 3); // Filter out short words
-            
-            const extractedFields = Object.keys(extractedData)
-              .map(field => field.toLowerCase());
-            
-            const unexpectedFields = extractedFields.filter(field => 
-              !promptWords.some(word => field.includes(word) || word.includes(field))
+          if (errorMessage.includes("quota") || errorMessage.includes("rate limit")) {
+            return NextResponse.json(
+              { error: "AI service quota exceeded. Please try again later.", details: errorMessage },
+              { status: 429 }
             );
-            
-            if (unexpectedFields.length > 0) {
-              console.warn("Warning: Potential fields extracted that weren't in prompt:", unexpectedFields);
-              
-              // Post-processing to filter out fields not in prompt
-              // Only do this if there's a custom prompt
-              const filteredData: ExtractedData = {};
-              
-              Object.entries(extractedData).forEach(([key, value]) => {
-                const keyLower = key.toLowerCase();
-                // Special case for 'table' - always keep if it was explicitly extracted
-                if (key === 'table' || promptWords.some(word => 
-                    keyLower.includes(word) || 
-                    word.includes(keyLower) ||
-                    // Handle common variations
-                    (keyLower === 'sender' && promptWords.includes('from')) ||
-                    (keyLower === 'recipient' && promptWords.includes('to')) ||
-                    // Check if the prompt contains words like "line items" or "table"
-                    ((keyLower === 'table' || keyLower === 'items' || keyLower === 'line_items') && 
-                     (promptWords.includes('table') || promptWords.includes('items')))
-                  )) {
-                  filteredData[key] = value;
-                }
-              });
-              
-              if (Object.keys(filteredData).length > 0) {
-                console.log("After filtering, kept fields:", Object.keys(filteredData));
-                extractedData = filteredData;
-              }
-            }
+          } else if (errorMessage.includes("permission") || errorMessage.includes("access")) {
+            return NextResponse.json(
+              { error: "API access permission issue. Check your API key configuration.", details: errorMessage },
+              { status: 403 }
+            );
+          } else {
+            return NextResponse.json(
+              { error: "Error calling the AI service", details: errorMessage },
+              { status: 500 }
+            );
           }
-          
-          // Create metadata about the extraction process
-          extractionMetadata = {
-            timestamp: new Date().toISOString(),
-            model: MODEL_ID,
-            prompt: promptText,
-            processingTimeMs: Date.now() - startTime,
-            options: extractionOptions
-          };
+        }
+        
+        const response = result.response;
+        const extractedText = response.text();
+        
+        // Add detailed logging for debugging
+        console.log("====== AI RESPONSE START ======");
+        console.log(extractedText.substring(0, 200) + (extractedText.length > 200 ? "..." : ""));
+        console.log("====== AI RESPONSE END ======");
+        
+        // Create metadata about the extraction process
+        extractionMetadata = {
+          timestamp: new Date().toISOString(),
+          model: MODEL_ID,
+          prompt: promptText,
+          processingTimeMs: Date.now() - startTime,
+          options: extractionOptions
+        };
+        
+        // Parse the extracted data
+        try {
+          // Clean up the response text by removing markdown code block markers
+          const cleanText = extractedText
+            .replace(/^```json\s*/, '')
+            .replace(/^```\s*/, '')
+            .replace(/```\s*$/, '')
+            .trim();
+            
+            console.log("====== CLEAN TEXT START ======");
+            console.log(cleanText.substring(0, 200) + (cleanText.length > 200 ? "..." : ""));
+            console.log("====== CLEAN TEXT END ======");
+            
+            // Additional check - if the text doesn't start with '{', attempt to convert to JSON
+            if (!cleanText.trim().startsWith('{')) {
+              console.log("Response is not in JSON format, attempting to format it");
+              
+              // Attempt to convert simple text format to JSON
+              try {
+                const lines = cleanText.split('\n');
+                const formattedData: Record<string, any> = {};
+                
+                for (const line of lines) {
+                  const colonIndex = line.indexOf(':');
+                  if (colonIndex > 0) {
+                    const key = line.substring(0, colonIndex).trim().toLowerCase().replace(/\s+/g, '_');
+                    const value = line.substring(colonIndex + 1).trim();
+                    
+                    if (key && value) {
+                      formattedData[key] = {
+                        value: value,
+                        confidence: 0.8 // Default confidence
+                      };
+                    }
+                  }
+                }
+                
+                if (Object.keys(formattedData).length > 0) {
+                  console.log("Converted text to JSON format:", JSON.stringify(formattedData).substring(0, 200));
+                  extractedData = formattedData as ExtractedData;
+                } else {
+                  throw new Error("Could not parse text into structured data");
+                }
+              } catch (conversionError) {
+                console.error("Failed to convert text to JSON:", conversionError);
+                throw new Error("Response is not in valid JSON format and conversion failed");
+              }
+            } else {
+              // Original JSON parsing attempt
+              extractedData = JSON.parse(cleanText) as ExtractedData;
+            }
           
           // Save the extracted data and metadata for future requests
           await writeFile(
@@ -312,12 +322,26 @@ export async function GET(
               metadata: extractionMetadata
             })
           );
+          
+          return NextResponse.json({
+            documentId,
+            fileName,
+            extractedData,
+            metadata: extractionMetadata
+          });
         } catch (error) {
           console.error("Error parsing extracted data:", error);
+          
+          // Provide a more helpful error response with original text for debugging
+          const responsePreview = extractedText.substring(0, 200) + (extractedText.length > 200 ? "..." : "");
+          
           return NextResponse.json(
             { 
               error: "Failed to parse extracted data",
-              rawResponse: cleanText 
+              details: (error as Error)?.message || "Unknown error",
+              suggestion: "The AI response wasn't in the expected JSON format. Try making your prompt more specific, e.g. 'Find the invoice number and total amount'.",
+              responsePreview: responsePreview,
+              rawResponse: extractedText.length < 1000 ? extractedText : undefined // Only include if not too large
             },
             { status: 500 }
           );
@@ -330,13 +354,6 @@ export async function GET(
         );
       }
     }
-    
-    return NextResponse.json({
-      documentId,
-      fileName,
-      extractedData,
-      metadata: extractionMetadata
-    });
   } catch (error) {
     console.error("Error processing request:", error);
     return NextResponse.json(
@@ -344,4 +361,4 @@ export async function GET(
       { status: 500 }
     );
   }
-} 
+}

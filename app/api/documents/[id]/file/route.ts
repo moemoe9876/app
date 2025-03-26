@@ -16,10 +16,10 @@ function getContentType(fileName: string): string {
 
 export async function GET(
   request: Request,
-  { params }: { params: Promise<{ id: string }> }
+  { params }: { params: { id: string } }
 ) {
   try {
-    const { id } = await params;
+    const { id } = params;
     const documentId = id;
     const documentDir = join(UPLOAD_DIR, documentId);
     

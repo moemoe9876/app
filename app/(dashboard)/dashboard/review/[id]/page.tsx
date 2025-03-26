@@ -56,9 +56,9 @@ import { DataVisualizer } from "@/components/DataVisualizer";
 import DocumentViewer from "@/components/DocumentViewer";
 
 interface PageProps {
-  params: Promise<{
+  params: {
     id: string;
-  }>;
+  };
 }
 
 // Define types for our data structure
@@ -93,7 +93,7 @@ interface ExtractionMetadata {
 }
 
 export default function ReviewPage({ params }: PageProps) {
-  const { id } = use(params);
+  const { id } = params;
   const documentId = id;
   const { toast } = useToast();
   const [editMode, setEditMode] = useState(false);
