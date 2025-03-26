@@ -1,520 +1,537 @@
-Okay, this is a significant and crucial step. Integrating Firestore and Cloud Storage requires careful planning, especially regarding data structure and security. Let's break down the process logically.
+Okay, I understand the gravity of the situation. Let's architect a robust, secure, and production-ready integration of Firebase Firestore and Cloud Storage with your existing Firebase Authentication and Next.js application. We will prioritize clean code, best practices, and security, ensuring your dashboard functions correctly with real data.
 
-**Core Concepts:**
+The goal is to replace the temporary local file system (`uploads/`) with scalable cloud solutions and link everything to your authenticated users.
 
-1.  **Firestore:** Our primary database for structured metadata. We'll store information *about* users and documents (like filenames, user IDs, extraction status, prompts, metadata, potentially small extracted results).
-2.  **Cloud Storage:** Used for storing the actual large binary files (uploaded PDFs/images) and potentially the larger JSON files containing extracted data if they exceed Firestore's limits or if you prefer separation.
-3.  **Firebase Authentication:** The source of truth for user identity (`uid`). We'll link Firestore data and Storage files to the authenticated user's `uid`.
-4.  **Security Rules:** Essential for protecting user data. Rules will ensure users can only access/modify their *own* documents and files.
-5.  **Firebase Admin SDK:** Used securely on the backend (API routes/Server Actions) for privileged operations if needed (though client SDK + security rules handle most cases here).
-6.  **Firebase Client SDK:** Used on the frontend to interact with Firestore/Storage, respecting security rules.
+**Understanding Your Application Flow:**
 
-**Integration Plan:**
+1.  **Authentication:** Users log in/sign up (Email/Password, Google) via `/login`, `/signup`. Auth state is managed by `AuthContext`.
+2.  **Dashboard Access:** Authenticated users access `/dashboard` and its sub-routes, protected by `app/(dashboard)/layout.tsx`.
+3.  **Upload:** Users go to `/dashboard/upload`, select a file (PDF/Image), optionally provide extraction instructions (`FileUpload`, `PromptInput`), and click "Extract Data".
+4.  **Processing (Current - Local):** `/api/upload` saves the file and prompt locally. `/api/extract` (presumably called later or synchronously, needs clarification) reads the local file, calls Gemini, and *should* save the result. `/api/documents/...` routes read/update local files. **This entire local process needs replacement.**
+5.  **Review:** Users navigate to `/dashboard/review/[id]`. This page needs to fetch the original document (from Storage), the extracted data (from Firestore/Storage), and metadata (from Firestore) based on the `documentId`. It allows viewing and potentially editing/confirming the data.
+6.  **History:** `/dashboard/history` needs to list documents processed *by the logged-in user*, fetching metadata from Firestore.
+7.  **Other:** Profile, Settings, Metrics will eventually need to read/write user-specific data from Firestore.
 
-**Phase 1: Setup & Configuration**
+**SSR/CSR & SEO Clarification:**
 
-1.  **Enable Firestore & Storage:**
-    *   Go to your Firebase Console.
-    *   Navigate to "Firestore Database" -> "Create database". Choose **Native mode** and select a server location close to your users. Start in **Test mode** for initial development (`allow read, write: if true;`), but **immediately plan to replace these with secure rules (Phase 3)**.
-    *   Navigate to "Storage" -> "Get started". Follow the prompts. Note your bucket URL (usually `your-project-id.appspot.com`). Again, start with test rules (`allow read, write: if true;`) and **plan to secure them (Phase 3)**.
-2.  **Install Admin SDK (for Backend):**
-    ```bash
-    npm install firebase-admin
-    # or
-    yarn add firebase-admin
-    # or
-    pnpm add firebase-admin
-    ```
-3.  **Secure Service Account Key:**
-    *   **Crucially:** Your `service_account.json` file grants *full admin access*. **NEVER** commit it or expose it client-side.
-    *   **Best Practice:** Store the *entire JSON content* as a single environment variable.
-    *   Add this to your `.env.local` (make sure this file is in `.gitignore`):
-        ```bash
-        # .env.local
-        FIREBASE_SERVICE_ACCOUNT_JSON='{ "type": "service_account", "project_id": "...", ... }' # Paste the entire JSON content here as a single line string
-        ```
-    *   For production (Vercel, etc.), set this environment variable securely through the hosting provider's dashboard.
-4.  **Initialize Admin SDK (Backend):** Create a file to initialize the Admin SDK *only for backend use*.
-    ```typescript
-    // lib/firebase/admin.ts
-    import admin from 'firebase-admin';
-    import { getApps, initializeApp, cert } from 'firebase-admin/app';
-    import { getFirestore } from 'firebase-admin/firestore';
-    import { getStorage } from 'firebase-admin/storage';
+*   **Marketing Pages (`/`, `app/(marketing)`):** Correct. These need SEO. Using Next.js Server Components for content fetching and rendering (SSR or SSG) is ideal. Client Components (`"use client"`) are fine for interactive parts like the header's auth state display.
+*   **Dashboard Pages (`app/(dashboard)`):** Correct. These are behind authentication, SEO is irrelevant. Using primarily Client Components (`"use client"`) is standard and often simpler for interactive dashboards that heavily rely on client-side data fetching (from Firestore/Storage based on the logged-in user) and state management (`AuthContext`). Your current dashboard layout already uses `"use client"`, which is appropriate. You don't *need* server-side rendering *for SEO* here. Data fetching will happen client-side using the Firebase SDK after authentication is confirmed.
 
-    // Parse the service account key from the environment variable
-    let serviceAccount;
-    try {
-      if (process.env.FIREBASE_SERVICE_ACCOUNT_JSON) {
-        serviceAccount = JSON.parse(process.env.FIREBASE_SERVICE_ACCOUNT_JSON);
-      } else {
-        console.warn("FIREBASE_SERVICE_ACCOUNT_JSON environment variable is not set. Admin SDK might not initialize properly.");
-      }
-    } catch (error) {
-      console.error("Error parsing FIREBASE_SERVICE_ACCOUNT_JSON:", error);
-      serviceAccount = undefined; // Ensure it's undefined if parsing fails
-    }
+**Implementation Plan: Integrating Firestore & Storage**
 
-    // Initialize Firebase Admin SDK only if it hasn't been initialized yet
-    if (!getApps().length && serviceAccount) {
-      try {
-        initializeApp({
-          credential: cert(serviceAccount),
-          storageBucket: process.env.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET // Get bucket name from public env vars
-        });
-        console.log("Firebase Admin SDK Initialized");
-      } catch (error) {
-        console.error("Firebase Admin SDK Initialization Error:", error);
-      }
-    } else if (!serviceAccount) {
-       console.warn("Firebase Admin SDK not initialized because service account key is missing or invalid.");
-    }
+We will follow these phases:
 
+**Phase 1: Setup & Configuration (Recap & Additions)**
 
-    const adminDb = admin.firestore();
-    const adminStorage = admin.storage();
-    const adminAuth = admin.auth(); // If needed for backend auth tasks
+*   **(Done)** Firebase Auth is set up.
+*   **(Done)** Environment variables for client config (`.env.local`).
+*   **(Done)** Firebase client initialization (`lib/firebase/client.ts`).
+*   **(Done)** `AuthContext` manages user state.
+*   **Action 1: Enable Firestore & Storage:** In your Firebase Console, enable "Firestore Database" (Native mode, choose location, start in **Test Mode** initially) and "Cloud Storage" (Get started, note bucket name).
+*   **Action 2: Install Admin SDK:** `npm install firebase-admin` (if not already done).
+*   **Action 3: Secure Service Account Key:** Store your `service_account.json` content securely as an environment variable (`FIREBASE_SERVICE_ACCOUNT_JSON`) in `.env.local` (for local dev) and your hosting provider (for production). **Ensure `.env.local` is gitignored.**
+*   **Action 4: Initialize Admin SDK (Backend Only):** Create `lib/firebase/admin.ts` (as shown in the previous detailed plan) to initialize the Admin SDK using the environment variable. This is crucial for potential backend tasks like Cloud Functions.
+*   **Action 5: Update Client SDK Init:** Add Firestore and Storage to `lib/firebase/client.ts`.
 
-    export { adminDb, adminStorage, adminAuth };
-    ```
-5.  **Update Client SDK Initialization:** Add Firestore and Storage to the client setup.
-    ```typescript
-    // lib/firebase/client.ts
-    import { initializeApp, getApps, getApp } from "firebase/app";
-    import { getAuth, GoogleAuthProvider } from "firebase/auth";
-    import { getFirestore } from "firebase/firestore"; // Add Firestore
-    import { getStorage } from "firebase/storage";   // Add Storage
+```typescript
+// lib/firebase/client.ts
+import { initializeApp, getApps, getApp } from "firebase/app";
+import { getAuth, GoogleAuthProvider } from "firebase/auth";
+import { getFirestore } from "firebase/firestore"; // <--- ADD
+import { getStorage } from "firebase/storage";   // <--- ADD
 
-    const firebaseConfig = {
-      apiKey: process.env.NEXT_PUBLIC_FIREBASE_API_KEY,
-      authDomain: process.env.NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN,
-      projectId: process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID,
-      storageBucket: process.env.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET,
-      messagingSenderId: process.env.NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID,
-      appId: process.env.NEXT_PUBLIC_FIREBASE_APP_ID,
-      measurementId: process.env.NEXT_PUBLIC_FIREBASE_MEASUREMENT_ID,
-    };
+const firebaseConfig = {
+  apiKey: process.env.NEXT_PUBLIC_FIREBASE_API_KEY,
+  authDomain: process.env.NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN,
+  projectId: process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID,
+  storageBucket: process.env.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET, // Ensure this is correct
+  messagingSenderId: process.env.NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID,
+  appId: process.env.NEXT_PUBLIC_FIREBASE_APP_ID,
+  measurementId: process.env.NEXT_PUBLIC_FIREBASE_MEASUREMENT_ID,
+};
 
-    const app = !getApps().length ? initializeApp(firebaseConfig) : getApp();
-    const auth = getAuth(app);
-    const db = getFirestore(app); // Initialize Firestore client
-    const storage = getStorage(app); // Initialize Storage client
-    const googleProvider = new GoogleAuthProvider();
+const app = !getApps().length ? initializeApp(firebaseConfig) : getApp();
+const auth = getAuth(app);
+const db = getFirestore(app); // <--- ADD Initialize Firestore client
+const storage = getStorage(app); // <--- ADD Initialize Storage client
+const googleProvider = new GoogleAuthProvider();
 
-    export { app, auth, db, storage, googleProvider }; // Export db and storage
-    ```
+export { app, auth, db, storage, googleProvider }; // <--- Export db and storage
+```
 
 **Phase 2: Data Modeling & User Profile Sync**
 
-1.  **Firestore Collections:**
-    *   **`users`**: Stores additional user data. Document ID = Firebase Auth `uid`.
-        *   Fields: `email` (string), `name` (string, optional), `createdAt` (timestamp), `plan` (string, e.g., 'free', 'pro'), etc.
-    *   **`documents`**: Stores metadata for each uploaded document.
-        *   Fields:
-            *   `userId`: (string, **indexed**) - Links to the `users` collection (`uid`). **Crucial for security rules.**
-            *   `originalFileName`: (string) - Name of the uploaded file.
-            *   `storagePath`: (string) - Full path in Firebase Storage (e.g., `uploads/{userId}/{documentId}/{fileName}`).
-            *   `fileType`: (string) - Mime type (e.g., 'application/pdf').
-            *   `fileSize`: (number) - Size in bytes.
-            *   `uploadTimestamp`: (timestamp) - When uploaded.
-            *   `status`: (string) - e.g., 'uploaded', 'processing', 'completed', 'failed', 'reviewing'. (**indexed**)
-            *   `extractionPrompt`: (string) - User's prompt.
-            *   `extractionOptions`: (map/object) - Options used.
-            *   `extractedDataStoragePath`: (string, optional) - Path to the extracted JSON in Storage if stored separately.
-            *   `extractedData`: (map/object, optional) - Store small results directly here (beware 1MB limit).
-            *   `extractionMetadata`: (map/object, optional) - Metadata from the extraction API.
-            *   `lastReviewedTimestamp`: (timestamp, optional)
-            *   `errorMessage`: (string, optional) - If processing failed.
-2.  **Cloud Storage Structure:**
-    *   Use folders based on `userId` and `documentId` for organization and security rule simplicity.
-    *   Example Path: `uploads/{userId}/{documentId}/{originalFileName.pdf}`
-    *   Example Path for Extracted Data: `uploads/{userId}/{documentId}/extracted_data.json`
-3.  **Sync User Profile on Signup/Login:** Modify `AuthContext` or use a Cloud Function trigger to create/update a user document in the `users` collection whenever a user signs up or logs in for the first time.
-    ```typescript
-    // context/AuthContext.tsx - Add Firestore interaction
-    import { doc, setDoc, serverTimestamp, getDoc } from 'firebase/firestore'; // Import Firestore functions
-    import { db } from '@/lib/firebase/client'; // Import client db
+*   **Action 1: Define Firestore Collections:**
+    *   **`users`**: (Doc ID = `uid`) Fields: `email`, `name` (optional), `createdAt` (timestamp), `plan` ('free'/'pro'), `stripeCustomerId` (optional, for payments later).
+    *   **`documents`**: (Doc ID = unique `documentId`) Fields:
+        *   `userId` (string, **indexed**) <= Links to `users` collection (`uid`). **CRITICAL FOR SECURITY**.
+        *   `originalFileName` (string)
+        *   `storagePath` (string) <= Path in Cloud Storage (e.g., `user_uploads/{userId}/{documentId}/{fileName}`)
+        *   `fileType` (string) <= Mime type
+        *   `fileSize` (number)
+        *   `uploadTimestamp` (timestamp, **indexed**)
+        *   `status` (string: 'uploading', 'uploaded', 'processing', 'review_needed', 'completed', 'failed', **indexed**)
+        *   `extractionPrompt` (string)
+        *   `extractionOptions` (map)
+        *   `extractedDataStoragePath` (string, optional) <= Path to extracted JSON in Storage (if large)
+        *   `extractedDataSummary` (map, optional) <= Store *small*, frequently accessed extracted fields here (e.g., invoice total, date). Avoid storing large JSON here.
+        *   `extractionMetadata` (map, optional) <= Timestamp, model used, processing time, etc.
+        *   `documentType` (string, optional, **indexed**) <= Detected type (e.g., 'invoice', 'manifest')
+        *   `errorMessage` (string, optional)
+*   **Action 2: Define Storage Structure:**
+    *   Use a root folder like `user_uploads/`.
+    *   Structure: `user_uploads/{userId}/{documentId}/{originalFileName}`
+    *   Extracted Data (if stored): `user_uploads/{userId}/{documentId}/extracted_data.json`
+*   **Action 3: Implement User Profile Sync:** Update `context/AuthContext.tsx` to create/update a user document in Firestore on authentication state changes (as shown in the previous detailed plan). Ensure required Firestore imports (`doc`, `setDoc`, `getDoc`, `serverTimestamp`) and the `db` instance are included.
 
-    // ... inside AuthProvider ...
+**Phase 3: Security Rules (IMPERATIVE - DEPLOY EARLY)**
 
-    useEffect(() => {
-      const unsubscribe = onAuthStateChanged(auth, async (currentUser) => { // Make async
-        setUser(currentUser);
-        if (currentUser) {
-          // Check if user doc exists, create if not
-          const userDocRef = doc(db, "users", currentUser.uid);
-          const userDocSnap = await getDoc(userDocRef);
+*   **Action 1: Create/Update `firestore.rules`:**
 
-          if (!userDocSnap.exists()) {
-            try {
-              await setDoc(userDocRef, {
-                uid: currentUser.uid,
-                email: currentUser.email,
-                name: currentUser.displayName, // Get name from provider if available
-                createdAt: serverTimestamp(),
-                plan: 'free', // Default plan
-              });
-              console.log("Created user document in Firestore for:", currentUser.uid);
-            } catch (dbError) {
-              console.error("Error creating user document in Firestore:", dbError);
-              // Handle error appropriately - maybe log out the user or show an error
-            }
-          }
-        }
-        setLoading(false);
-        console.log("Auth State Changed:", currentUser ? currentUser.uid : 'No user');
-      });
+```firestore
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
 
-      return () => unsubscribe();
-    }, []); // Add db to dependency array if needed, but it should be stable
-
-    // ... rest of AuthContext ...
-    ```
-
-**Phase 3: Security Rules (CRITICAL)**
-
-1.  **Create `firestore.rules`:** In your project root.
-    ```firestore
-    rules_version = '2';
-    service cloud.firestore {
-      match /databases/{database}/documents {
-
-        // Users Collection: Only the user can read/write their own profile
-        match /users/{userId} {
-          allow read, update, delete: if request.auth != null && request.auth.uid == userId;
-          allow create: if request.auth != null && request.auth.uid == userId; // Allow user to create their own doc
-        }
-
-        // Documents Collection: Only the owner can manage their documents
-        match /documents/{documentId} {
-          // Allow read only if the requesting user's ID matches the document's userId
-          allow read: if request.auth != null && request.auth.uid == resource.data.userId;
-
-          // Allow create only if the user is logged in AND the userId being set matches their own ID
-          allow create: if request.auth != null && request.resource.data.userId == request.auth.uid
-                        // Add validation for required fields on create
-                        && request.resource.data.keys().hasAll(['userId', 'originalFileName', 'storagePath', 'fileType', 'fileSize', 'uploadTimestamp', 'status'])
-                        && request.resource.data.userId is string
-                        && request.resource.data.originalFileName is string
-                        && request.resource.data.status == 'uploaded'; // Enforce initial status
-
-          // Allow update only if the user owns the document
-          // Prevent changing the userId
-          allow update: if request.auth != null && request.auth.uid == resource.data.userId
-                        && request.resource.data.userId == resource.data.userId; // Cannot change owner
-                        // Add validation for updatable fields (e.g., status, extractedData, metadata)
-
-          // Allow delete only if the user owns the document
-          allow delete: if request.auth != null && request.auth.uid == resource.data.userId;
-        }
-      }
+    // Users: Allow users to read/write their own profile only.
+    match /users/{userId} {
+      allow read, update: if request.auth != null && request.auth.uid == userId;
+      // Allow creation only if the document ID matches the user's UID
+      allow create: if request.auth != null && request.auth.uid == userId;
+      // Generally, don't allow deletion of user profiles easily.
+      allow delete: if false;
     }
-    ```
-2.  **Create `storage.rules`:** In your project root.
-    ```storage
-    rules_version = '2';
-    service firebase.storage {
-      match /b/{bucket}/o {
-        // Match files within user-specific folders: uploads/{userId}/{documentId}/{fileName}
-        match /uploads/{userId}/{documentId}/{allPaths=**} {
-          // Allow read and write only if the userId in the path matches the authenticated user's ID
-          allow read, write: if request.auth != null && request.auth.uid == userId;
 
-          // More granular write (optional):
-          // allow create: if request.auth != null && request.auth.uid == userId;
-          // allow update: if request.auth != null && request.auth.uid == userId; // If needed
-          // allow delete: if request.auth != null && request.auth.uid == userId;
-        }
-
-         // Deny access to all other paths by default
-         match /{allPaths=**} {
-           allow read, write: if false;
-         }
+    // Documents: Allow users CRUD access ONLY to their own documents.
+    match /documents/{documentId} {
+      // Helper function to check ownership
+      function isOwner() {
+        return request.auth != null && request.auth.uid == resource.data.userId;
       }
+      // Helper function to check ownership during creation/update
+      function isCreatingOrUpdatingOwner() {
+        return request.auth != null && request.resource.data.userId == request.auth.uid;
+      }
+      // Helper function for field validation on create
+      function hasRequiredCreateFields() {
+        return request.resource.data.keys().hasAll(['userId', 'originalFileName', 'storagePath', 'fileType', 'fileSize', 'uploadTimestamp', 'status', 'extractionPrompt', 'extractionOptions'])
+               && request.resource.data.userId is string
+               && request.resource.data.originalFileName is string
+               && request.resource.data.storagePath is string
+               && request.resource.data.fileType is string
+               && request.resource.data.fileSize is number
+               && request.resource.data.uploadTimestamp is timestamp
+               && request.resource.data.status is string
+               && request.resource.data.extractionPrompt is string
+               && request.resource.data.extractionOptions is map;
+      }
+
+      // Read: Only the owner can read.
+      allow read: if isOwner();
+
+      // Create: User must be logged in, setting their own userId, providing required fields, and initial status must be 'uploaded' or 'uploading'.
+      allow create: if isCreatingOrUpdatingOwner()
+                    && hasRequiredCreateFields()
+                    && (request.resource.data.status == 'uploaded' || request.resource.data.status == 'uploading');
+
+      // Update: Only the owner can update. Cannot change the userId. Status transitions can be restricted if needed.
+      allow update: if isOwner()
+                    && request.resource.data.userId == resource.data.userId; // Prevent changing owner
+                    // && request.resource.data.status in ['processing', 'review_needed', 'completed', 'failed']; // Example status transition restriction
+
+      // Delete: Only the owner can delete.
+      allow delete: if isOwner();
     }
-    ```
-3.  **Deploy Rules:** Use the Firebase CLI:
+
+    // Deny all other access by default
+    match /{path=**} {
+      allow read, write: if false;
+    }
+  }
+}
+```
+
+*   **Action 2: Create/Update `storage.rules`:**
+
+```storage
+rules_version = '2';
+service firebase.storage {
+  match /b/{bucket}/o {
+    // User Uploads: Match files within user-specific folders
+    // Path: user_uploads/{userId}/{documentId}/{fileName}
+    match /user_uploads/{userId}/{documentId}/{fileName} {
+      // Allow read/write ONLY if the userId in the path matches the authenticated user's ID
+      // Also check file size and type on write (adjust limits as needed)
+      allow read: if request.auth != null && request.auth.uid == userId;
+      allow write: if request.auth != null && request.auth.uid == userId
+                      && request.resource.size < 100 * 1024 * 1024 // 100MB limit
+                      && (request.resource.contentType.matches('application/pdf')
+                          || request.resource.contentType.matches('image/png')
+                          || request.resource.contentType.matches('image/jpeg'));
+
+      // Allow delete only by owner
+      allow delete: if request.auth != null && request.auth.uid == userId;
+    }
+
+     // Deny access to all other paths by default
+     match /{allPaths=**} {
+       allow read, write: if false;
+     }
+  }
+}
+```
+
+*   **Action 3: Deploy Rules:**
     ```bash
-    firebase login
-    firebase use your-project-id
-    firebase deploy --only firestore:rules
-    firebase deploy --only storage:rules
+    firebase deploy --only firestore:rules,storage:rules
     ```
-    **Replace your initial test rules immediately.**
+    **(CRITICAL: Do this NOW to replace test rules!)**
 
-**Phase 4: Backend API Route Modifications**
+**Phase 4: Backend/API Refactoring (Shift to Client-Side)**
 
-1.  **Refactor `/api/upload`:**
-    *   Get the authenticated user's `uid` from the *client-side* context before making the API call (or pass ID token for backend verification if preferred, but client SDK + rules is often simpler). *Correction:* The API route itself doesn't easily get the client's auth state. The client needs to be authenticated, and the *Security Rules* will enforce ownership based on `request.auth.uid`.
-    *   Modify the API route to accept `userId` (or derive it securely if using backend sessions/token verification). For now, we'll assume the client is authenticated and rules handle it.
-    ```typescript
-    // app/api/upload/route.ts
-    import { NextResponse } from "next/server";
-    import { v4 as uuidv4 } from "uuid";
-    import { ref, uploadBytes, getDownloadURL } from "firebase/storage"; // Use client SDK for storage upload
-    import { doc, setDoc, serverTimestamp, collection } from "firebase/firestore"; // Use client SDK for Firestore write
-    import { storage, db, auth } from "@/lib/firebase/client"; // Use client SDK instances
-    import { getCurrentUser } from "@/utils/auth"; // Helper to get current user (implement this)
+*   **Action 1: Deprecate/Refactor API Routes:** As reasoned before, direct client-side interaction with Firebase services using the Client SDK is generally safer and simpler for this use case, relying on Security Rules for authorization.
+    *   `/api/upload`: **Deprecate.** The client will handle uploads directly.
+    *   `/api/extract`: **Keep for now, but called by the client.** This route will now:
+        *   Receive `documentId` and potentially the `userId` (or verify ID token).
+        *   Use Admin SDK (or Client SDK if rules allow service access) to read Firestore doc for `storagePath` and `prompt/options`.
+        *   Use Admin SDK (or Client SDK) to get the file from Storage using `storagePath`.
+        *   Call Gemini.
+        *   Save `extracted_data.json` to Storage (using Admin/Client SDK).
+        *   Update Firestore doc status, `extractedDataStoragePath`, `extractionMetadata` (using Admin/Client SDK).
+    *   `/api/documents/[id]`: **Deprecate.** Client fetches from Firestore.
+    *   `/api/documents/[id]/file`: **Deprecate.** Client gets URL from Storage SDK.
+    *   `/api/documents/[id]/update`: **Deprecate.** Client updates Firestore directly.
 
-    // Helper function (create this file or place appropriately)
-    // utils/auth.ts
-    import { auth } from '@/lib/firebase/client';
-    export function getCurrentUser() {
-        return new Promise((resolve, reject) => {
-            const unsubscribe = auth.onAuthStateChanged(user => {
-                unsubscribe(); // Unsubscribe after getting the state once
-                resolve(user);
-            }, reject);
-        });
+*   **Action 2: Update `/api/extract/route.ts` (Kept for processing):**
+
+```typescript
+// app/api/extract/route.ts
+import { NextResponse } from "next/server";
+import { GoogleGenerativeAI } from "@google/generative-ai";
+import { getFirestore, Timestamp } from "firebase-admin/firestore"; // Use Admin SDK
+import { getStorage } from "firebase-admin/storage";       // Use Admin SDK
+import { adminDb, adminStorage } from "@/lib/firebase/admin"; // Import initialized Admin SDK instances
+// TODO: Add Admin Auth verification if needed
+
+// Ensure API key exists (redundant check, but safe)
+if (!process.env.GEMINI_API_KEY) {
+  console.error("FATAL ERROR: GEMINI_API_KEY environment variable is not set.");
+}
+const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY!);
+const MODEL_ID = "gemini-2.0-flash";
+
+// --- Keep your existing interfaces: PositionData, FieldData, ExtractedValue, ExtractedData, ExtractionOptions ---
+interface PositionData { /* ... */ }
+interface FieldData { /* ... */ }
+type ExtractedValue = FieldData | ExtractedValue[] | { [key: string]: ExtractedValue };
+interface ExtractedData { [key: string]: ExtractedValue; }
+interface ExtractionOptions { /* ... */ }
+interface ExtractionMetadata { /* ... */ } // Define if not already
+
+// Helper function to get MIME type from filename
+const getMimeType = (fileName: string): string => {
+  if (fileName.endsWith('.pdf')) return "application/pdf";
+  if (fileName.endsWith('.png')) return "image/png";
+  if (fileName.endsWith('.jpg') || fileName.endsWith('.jpeg')) return "image/jpeg";
+  return "application/octet-stream"; // Default
+};
+
+
+export async function POST(request: Request) {
+  const startTime = Date.now();
+  let documentId: string | null = null; // Keep track for error reporting
+
+  try {
+    const body = await request.json();
+    documentId = body.documentId; // Expect documentId in the JSON body
+    const userId = body.userId; // Expect userId (or verify token later)
+
+    if (!documentId || !userId) {
+      return NextResponse.json({ error: "documentId and userId are required" }, { status: 400 });
     }
 
+    // --- TODO: Add Authentication/Authorization Check ---
+    // Verify that the request comes from the authenticated user who owns this documentId
+    // E.g., Verify an ID token passed in the Authorization header using adminAuth.verifyIdToken(token)
+    // const token = request.headers.get('Authorization')?.split('Bearer ')[1];
+    // if (!token) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    // const decodedToken = await adminAuth.verifyIdToken(token);
+    // if (decodedToken.uid !== userId) {
+    //   return NextResponse.json({ error: "Forbidden - User mismatch" }, { status: 403 });
+    // }
+    // --- End Auth Check ---
 
-    // ... (keep ExtractionOptions interface) ...
+    console.log(`Starting extraction for document: ${documentId}, user: ${userId}`);
 
-    export async function POST(request: Request) {
-      try {
-        // --- Authentication Check ---
-        // In a real API route, you'd ideally verify an ID token passed from the client
-        // For simplicity here, we rely on the client being authenticated and security rules.
-        // Let's simulate getting the user ID (replace with proper server-side auth if needed)
-        const currentUser = auth.currentUser; // This might be null on the server!
-        if (!currentUser) {
-             // A better approach is to pass the ID token in the request header
-             // and verify it using the Admin SDK. For now, rely on rules.
-             // Or, make the client call Firestore/Storage directly.
-             // Let's proceed assuming rules will catch unauthorized access.
-             // A placeholder check:
-             // return NextResponse.json({ error: "Authentication required" }, { status: 401 });
-             console.warn("API Route: No authenticated user found on server-side check. Relying on Security Rules.");
-             // We need the user ID for paths, this approach is flawed for serverless API routes
-             // without passing the UID or verifying a token.
+    // 1. Fetch Document Metadata from Firestore
+    const docRef = adminDb.collection("documents").doc(documentId);
+    const docSnap = await docRef.get();
 
-             // --- SAFER APPROACH: Client-Side Operations ---
-             // It's often safer and simpler for the client to directly interact
-             // with Firestore/Storage using the client SDK, letting Security Rules handle auth.
-             // This API route might only be needed if there's complex backend logic
-             // *before* saving, or if using the Admin SDK is necessary.
-
-             // --- REVISED PLAN: Let client handle upload/doc creation ---
-             // This API route might become unnecessary if the client does the work.
-             // Let's comment out the backend logic and suggest client-side instead.
-
-             /*
-             const formData = await request.formData();
-             const file = formData.get("file") as File;
-             const extractionPrompt = formData.get("extractionPrompt") as string || "";
-             const optionsJson = formData.get("options") as string;
-             const userId = currentUser?.uid; // FLAWED: currentUser likely null here
-
-             if (!userId) {
-                 return NextResponse.json({ error: "User ID not found" }, { status: 401 });
-             }
-             if (!file) {
-                 return NextResponse.json({ error: "No file provided" }, { status: 400 });
-             }
-
-             const options: ExtractionOptions = optionsJson ? JSON.parse(optionsJson) : { /* defaults * / };
-             const documentId = uuidv4();
-             const fileExtension = file.name.split('.').pop();
-             const storageFileName = `original.${fileExtension}`; // Consistent naming
-             const storagePath = `uploads/${userId}/${documentId}/${storageFileName}`;
-             const storageRef = ref(storage, storagePath);
-
-             // 1. Upload file to Storage
-             await uploadBytes(storageRef, file);
-             console.log("File uploaded to:", storagePath);
-
-             // 2. Create Firestore document
-             const docRef = doc(db, "documents", documentId);
-             await setDoc(docRef, {
-                 userId: userId,
-                 originalFileName: file.name,
-                 storagePath: storagePath,
-                 fileType: file.type,
-                 fileSize: file.size,
-                 uploadTimestamp: serverTimestamp(),
-                 status: 'uploaded',
-                 extractionPrompt: extractionPrompt,
-                 extractionOptions: options,
-             });
-             console.log("Firestore document created:", documentId);
-
-             // 3. (Optional) Trigger extraction (e.g., via Cloud Function)
-
-             return NextResponse.json({ documentId, message: "File uploaded successfully" });
-             */
-
-             // --- Suggestion ---
-             return NextResponse.json({ error: "Deprecated: Client should handle upload directly to Firebase Storage and Firestore creation using the client SDK and Security Rules." }, { status: 400 });
-
-
-      } catch (error) {
-        console.error("Error in upload API:", error);
-        return NextResponse.json(
-          { error: "Failed to process upload request", details: (error as Error).message },
-          { status: 500 }
-        );
-      }
+    if (!docSnap.exists) {
+      return NextResponse.json({ error: "Document metadata not found in Firestore" }, { status: 404 });
     }
-    ```
-    *   **Conclusion:** Direct client-side upload/Firestore write is generally better for this use case when relying on security rules. The API route becomes less necessary unless doing complex pre-processing.
 
-2.  **Refactor `/api/extract`:**
-    *   This should ideally be an **asynchronous process**, perhaps triggered by a Cloud Function listening to new file uploads in Storage or new documents in Firestore.
-    *   **If kept synchronous (simpler for now, but less robust):**
-        *   Accept `documentId`.
-        *   *Security:* Verify the requesting user owns the document (either via token verification + Admin SDK check or rely on client calling this *after* verifying ownership).
-        *   Fetch the document metadata from Firestore using `documentId`.
-        *   Get the `storagePath` from the metadata.
-        *   Download the file from Storage (using Admin SDK is safer here if verifying token).
-        *   Perform Gemini extraction.
-        *   Save `extracted_data.json` to Storage (`uploads/{userId}/{documentId}/extracted_data.json`).
-        *   Update the Firestore document: set `status: 'completed'`, `extractedDataStoragePath`, `extractionMetadata`, `extractionTimestamp`.
-    *   **Recommendation:** Move extraction logic to the client *after* upload confirmation, or use Cloud Functions. Let's assume client-side for now.
+    const docData = docSnap.data();
+    if (!docData || docData.userId !== userId) {
+        // This check is redundant if the TODO Auth Check above is implemented correctly
+        console.error(`Ownership mismatch or missing data. Doc User: ${docData?.userId}, Request User: ${userId}`);
+        return NextResponse.json({ error: "Forbidden - Document access denied" }, { status: 403 });
+    }
 
-3.  **Refactor `/api/documents/[id]` (GET):**
-    *   This route is likely **unnecessary**. The client can fetch the document metadata directly from Firestore using the client SDK and `documentId`, relying on security rules.
+    const { storagePath, extractionPrompt, extractionOptions: options, originalFileName } = docData;
 
-4.  **Refactor `/api/documents/[id]/file` (GET):**
-    *   This route is likely **unnecessary**. The client, after fetching the Firestore document metadata (which includes `storagePath`), can use the client Storage SDK's `getDownloadURL(ref(storage, storagePath))` function to get a publicly accessible (but potentially time-limited) URL for the file. Security rules on Storage ensure only the owner can get this URL.
+    if (!storagePath) {
+        await docRef.update({ status: 'failed', errorMessage: 'Storage path missing in metadata.' });
+        return NextResponse.json({ error: "Storage path missing for document" }, { status: 400 });
+    }
 
-5.  **Refactor `/api/documents/[id]/update` (POST):**
-    *   This route is likely **unnecessary**. The client can update the Firestore document directly using the client SDK (`updateDoc`), relying on security rules to ensure ownership and field validation.
+    // Update status to 'processing'
+    await docRef.update({ status: 'processing' });
 
-**Phase 5: Frontend Integration**
+    // 2. Download File from Storage
+    console.log(`Downloading from Storage: ${storagePath}`);
+    const bucket = adminStorage.bucket(); // Default bucket
+    const fileRef = bucket.file(storagePath);
+    const [fileBuffer] = await fileRef.download();
+    const base64 = fileBuffer.toString("base64");
+    const mimeType = getMimeType(originalFileName || storagePath); // Use original name or path
 
-1.  **Upload Page (`app/(dashboard)/upload/page.tsx`):**
-    *   Modify `handleUpload` to perform client-side operations:
-        *   Get `currentUser` from `useAuth()`. Check if logged in.
-        *   Generate `documentId` (UUID).
-        *   Define `storagePath`.
-        *   Use `uploadBytes` (from `firebase/storage`) to upload the file directly to the `storagePath`.
-        *   Use `setDoc` (from `firebase/firestore`) to create the document metadata in the `documents` collection.
-        *   Handle progress using `uploadTask` from `uploadBytesResumable` if needed.
-        *   On success, store the `documentId` and transition to processing/complete state or redirect.
-    *   **Trigger Extraction (Client-side approach):** After successful upload and Firestore document creation, make a call to your extraction logic (which might still be an API route like `/api/extract`, but now called *by the authenticated client* passing the `documentId`).
-    ```typescript
-    // app/(dashboard)/upload/page.tsx (Illustrative handleUpload modification)
-    import { ref, uploadBytesResumable, getDownloadURL } from "firebase/storage";
-    import { doc, setDoc, serverTimestamp } from "firebase/firestore";
-    import { storage, db, auth } from "@/lib/firebase/client"; // Use client SDK
-    import { useAuth } from "@/context/AuthContext";
-    import { v4 as uuidv4 } from "uuid";
-    // ... other imports
+    // 3. Prepare and Call Gemini API
+    const model = genAI.getGenerativeModel({
+      model: MODEL_ID,
+      generationConfig: {
+        temperature: options?.temperature ?? 0.1,
+        maxOutputTokens: 8192,
+        responseMimeType: "application/json",
+      },
+    });
 
-    // Inside UploadPage component
-    const { user } = useAuth();
+    // --- Use the same enhanced prompt logic as before ---
+    const userRequest = extractionPrompt || "Extract all key information and line items/table data found in the document.";
+    const confidenceInstruction = options?.includeConfidence !== false ? "- A 'confidence' score (0.0 to 1.0) indicating certainty." : "";
+    const positionInstruction = options?.includePositions === true ? "- 'position' data ('page_number', 'bounding_box' [x1, y1, x2, y2 percentages]) if available." : "";
+    const fieldStructureExample = `{
+          "value": "extracted value"${options?.includeConfidence !== false ? ',\n          "confidence": 0.95' : ''}${options?.includePositions === true ? ',\n          "position": {\n            "page_number": 1,\n            "bounding_box": [10.5, 20.3, 30.2, 25.1]\n          }' : ''}
+        }`;
 
-    const handleUpload = async () => {
-        if (!file || !user) {
-          setError(!user ? "You must be logged in to upload." : "Please select a file.");
-          return;
-        }
+    // (Include the full prompt text construction from the previous answer here, using `userRequest`, `confidenceInstruction`, `positionInstruction`, `fieldStructureExample`)
+    const prompt = `
+      Analyze the following document.
+      Your goal is to extract specific data based on the user's request and structure it as valid JSON.
 
-        setLoading(true);
-        setUploadStage(UploadStage.PROCESSING);
-        setProgress(0);
-        setError(null);
-        const documentId = uuidv4(); // Generate unique ID
+      USER'S REQUEST:
+      "${userRequest}"
 
-        try {
-            // 1. Upload file to Firebase Storage
-            const fileExtension = file.name.split('.').pop();
-            const storageFileName = `original.${fileExtension}`;
-            const storagePath = `uploads/${user.uid}/${documentId}/${storageFileName}`;
-            const storageRef = ref(storage, storagePath);
+      EXTRACTION & FORMATTING RULES (Follow Strictly):
 
-            const uploadTask = uploadBytesResumable(storageRef, file);
+      1.  **Scope:** Extract ONLY the data fields explicitly mentioned or implied by the USER'S REQUEST. If the request is general (e.g., "extract all"), identify and extract common key fields relevant to the document type. Do NOT add extra fields not requested.
+      2.  **JSON Output:** Respond ONLY with a single, valid JSON object. Do NOT include any text before or after the JSON, and do not use markdown backticks (\`\`\`).
+      3.  **Field Structure:** For each extracted field, use the following JSON structure:
+          \`\`\`json
+          "field_name_in_snake_case": ${fieldStructureExample}
+          \`\`\`
+          ${confidenceInstruction ? `\n          ${confidenceInstruction}` : ''}
+          ${positionInstruction ? `\n          ${positionInstruction}` : ''}
+      4.  **LINE ITEMS STRUCTURE - YOUR TOP PRIORITY:**
+          *   ALWAYS extract line items as individual objects in an array - NEVER as one string
+          *   ABSOLUTELY FORBIDDEN: \`"line_items": { "value": "item1, item2, item3", "confidence": 0.9 }\`
+          *   ALWAYS REQUIRED: \`"line_items": [ {object1}, {object2}, {object3} ]\`
 
-            uploadTask.on('state_changed',
-                (snapshot) => {
-                    const progress = (snapshot.bytesTransferred / snapshot.totalBytes) * 50; // Upload is 50%
-                    setProgress(progress);
-                },
-                (error) => {
-                    console.error("Storage Upload Error:", error);
-                    throw new Error(`Failed to upload file: ${error.code}`);
-                },
-                async () => {
-                    // Upload completed successfully
-                    console.log("File uploaded to Storage:", storagePath);
-                    setProgress(50); // Mark upload as done
+          If you see multiple products or line items like "123456 - PRODUCT NAME", split each into its own object:
+            \`\`\`json
+            "line_items": [
+              {
+                "product_code": { "value": "123456", "confidence": 0.98 },
+                "description": { "value": "PRODUCT NAME", "confidence": 0.95 }
+              },
+              {
+                "product_code": { "value": "789012", "confidence": 0.98 },
+                "description": { "value": "ANOTHER PRODUCT", "confidence": 0.95 }
+              }
+            ]
+            \`\`\`
+      5.  **Not Found:** If a specifically requested field cannot be found in the document, include its key in the JSON with a \`value\` of \`null\` and, if confidence is enabled, a low \`confidence\` score (e.g., 0.1).
+          \`\`\`json
+          "requested_but_missing_field": { "value": null${options?.includeConfidence !== false ? ', "confidence": 0.1' : ''} }
+          \`\`\`
+      6.  **Hierarchy:** If the data has a natural hierarchy (e.g., sender address with street, city, zip), represent it using nested JSON objects.
+          \`\`\`json
+          "sender_address": {
+            "street": { "value": "123 Main St", "confidence": 0.98 },
+            "city": { "value": "Anytown", "confidence": 0.97 },
+            "zip_code": { "value": "12345", "confidence": 0.96 }
+          }
+          \`\`\`
 
-                    // 2. Create Firestore document metadata
-                    const docRef = doc(db, "documents", documentId);
-                    await setDoc(docRef, {
-                        userId: user.uid,
-                        originalFileName: file.name,
-                        storagePath: storagePath,
-                        fileType: file.type,
-                        fileSize: file.size,
-                        uploadTimestamp: serverTimestamp(),
-                        status: 'uploaded', // Initial status
-                        extractionPrompt: extractionPrompt,
-                        extractionOptions: extractionOptions,
-                    });
-                    console.log("Firestore document created:", documentId);
-                    setDocumentId(documentId); // Store for later use
-                    setProgress(60); // Mark Firestore write done
+      Now, analyze the document and provide the extracted data according to the USER'S REQUEST and these rules.
+    `;
+    // --- End Prompt Construction ---
 
-                    // 3. Trigger Extraction (Client-side call to API or direct logic)
-                    // Example: Calling an API route
-                    const extractFormData = new FormData();
-                    extractFormData.append('documentId', documentId);
-                    // No need to send file again if API can fetch from Storage
+    console.log(`Calling Gemini for document: ${documentId}`);
+    const result = await model.generateContent([
+        { text: prompt },
+        { inlineData: { mimeType: mimeType, data: base64 } }
+    ]);
+    const response = await result.response;
+    const responseText = response.text();
 
-                    // Simulate extraction progress
-                    setProgress(70);
-                    await new Promise(resolve => setTimeout(resolve, 500)); // Simulate work
-                    setProgress(90);
+    // 4. Parse and Validate Response
+    let extractedData: ExtractedData;
+    try {
+        const cleanText = responseText.replace(/^```json\s*/, '').replace(/```\s*$/, '').trim();
+        if (!cleanText) throw new Error("AI returned an empty response.");
+        extractedData = JSON.parse(cleanText);
+        console.log(`Successfully parsed JSON for document: ${documentId}`);
+        // Add line item post-processing if needed (copy logic from previous answer)
 
-                    // Assuming extraction happens elsewhere or is simulated
-                    // In a real app, you'd poll status or use real-time updates
-                    // For now, just transition to complete after a delay
-                    await new Promise(resolve => setTimeout(resolve, 1000));
-                    setProgress(100); // This triggers the useEffect to go to COMPLETE stage
+    } catch (parseError) {
+        console.error(`Error parsing AI response for ${documentId}:`, parseError);
+        await docRef.update({ status: 'failed', errorMessage: `Failed to parse AI response: ${parseError instanceof Error ? parseError.message : 'Invalid JSON'}` });
+        return NextResponse.json({ error: "Failed to parse extracted data", details: parseError instanceof Error ? parseError.message : "Invalid JSON" }, { status: 500 });
+    }
 
-                    // If extraction API returns data directly:
-                    // const extractResponse = await fetch('/api/extract', { method: 'POST', body: extractFormData });
-                    // if (!extractResponse.ok) throw new Error('Extraction failed');
-                    // const extractionResult = await extractResponse.json();
-                    // Update Firestore doc with extractionResult.data and metadata
-                    // await updateDoc(docRef, { status: 'completed', extractedData: extractionResult.data, ... });
-                    // setProgress(100);
-                }
-            );
+    // 5. Save Extracted Data (to Storage) & Update Firestore
+    const extractedDataFileName = `extracted_data.json`;
+    const extractedDataStoragePath = `user_uploads/${userId}/${documentId}/${extractedDataFileName}`;
+    const extractedDataFileRef = bucket.file(extractedDataStoragePath);
 
-        } catch (error) {
-            console.error("Error processing upload:", error);
-            setError(error instanceof Error ? error.message : "An unknown error occurred");
-            setUploadStage(UploadStage.ERROR);
-            setLoading(false);
-        }
-        // setLoading(false) will be handled by the uploadTask completion/error
+    const metadata: ExtractionMetadata = {
+        timestamp: new Date().toISOString(),
+        model: MODEL_ID,
+        // documentType: documentType, // Get from extractedData if included
+        prompt: extractionPrompt || "General extraction",
+        processingTimeMs: Date.now() - startTime,
+        options
     };
 
-    // ... rest of component
-    ```
+    // Save extracted JSON to storage
+    await extractedDataFileRef.save(JSON.stringify({ data: extractedData, metadata: metadata }), {
+        contentType: 'application/json'
+    });
+    console.log(`Extracted data saved to Storage: ${extractedDataStoragePath}`);
 
-2.  **History Page (`app/(dashboard)/dashboard/history/page.tsx`):**
-    *   Use `useAuth` to get the current user's `uid`.
-    *   Fetch documents directly from Firestore using the client SDK:
-        *   Import `collection`, `query`, `where`, `orderBy`, `getDocs` from `firebase/firestore`.
-        *   Create a query: `const q = query(collection(db, "documents"), where("userId", "==", user.uid), orderBy("uploadTimestamp", "desc"));`
-        *   Use `getDocs(q)` to fetch the data within a `useEffect`.
-        *   Map the results to your `sampleDocuments` structure.
-3.  **Review Page (`app/(dashboard)/dashboard/review/[id]/page.tsx`):**
+    // Update Firestore document
+    await docRef.update({
+        status: 'review_needed', // Or 'completed' if no review step
+        extractedDataStoragePath: extractedDataStoragePath,
+        extractionMetadata: metadata,
+        documentType: extractedData.document_type?.value || docData.documentType || null, // Update if detected/extracted
+        errorMessage: null // Clear previous errors
+    });
+    console.log(`Firestore document updated for ${documentId}`);
+
+    // 6. Return Success
+    return NextResponse.json({
+      documentId: documentId,
+      message: "Extraction successful",
+      extractedDataStoragePath: extractedDataStoragePath // Return path to client
+    });
+
+  } catch (error) {
+    console.error(`Error during extraction process for document ${documentId}:`, error);
+    const errorMessage = error instanceof Error ? error.message : "An unknown error occurred during extraction.";
+
+    // Attempt to update Firestore status to 'failed' if possible
+    if (documentId) {
+        try {
+            await adminDb.collection("documents").doc(documentId).update({
+                status: 'failed',
+                errorMessage: errorMessage
+            });
+        } catch (updateError) {
+            console.error(`Failed to update document ${documentId} status to failed:`, updateError);
+        }
+    }
+
+    // Return appropriate error response
+    if (errorMessage.includes("API key not valid")) {
+        return NextResponse.json({ error: "Invalid Gemini API Key.", details: errorMessage }, { status: 401 });
+    }
+    if (errorMessage.includes("quota") || errorMessage.includes("rate limit")) {
+        return NextResponse.json({ error: "Extraction service quota exceeded.", details: errorMessage }, { status: 429 });
+    }
+    return NextResponse.json({ error: "Failed to extract data", details: errorMessage }, { status: 500 });
+  }
+}
+```
+
+**Phase 5: Frontend Integration (Client SDK)**
+
+*   **Action 1: Update Upload Page (`app/(dashboard)/dashboard/upload/page.tsx`):**
+    *   Modify `handleUpload` to:
+        *   Get `user` from `useAuth()`.
+        *   Generate `documentId`.
+        *   Define `storagePath`.
+        *   Use `uploadBytesResumable` from `firebase/storage` for upload with progress.
+        *   On successful upload (`uploadTask.on('state_changed', ..., async () => { ... })`):
+            *   Create the Firestore document metadata using `setDoc(doc(db, "documents", documentId), { ... })`. Include `userId: user.uid`, `status: 'uploaded'`, etc.
+            *   **Trigger Extraction:** Make a `POST` request to your `/api/extract` route, sending `{ documentId, userId: user.uid }` in the JSON body.
+            *   Update local state (`uploadStage`, `progress`) based on the API response (success or failure). Handle errors using `toast`.
+*   **Action 2: Update History Page (`app/(dashboard)/dashboard/history/page.tsx`):**
     *   Use `useAuth` to get `user`.
-    *   Fetch document metadata directly from Firestore: `getDoc(doc(db, "documents", documentId))`. **Verify `docData.userId === user.uid` before proceeding.**
-    *   Get the PDF download URL: Use `getDownloadURL(ref(storage, docData.storagePath))`. Pass this URL to `DocumentViewer`.
-    *   Fetch extracted data: If stored in Firestore, use `docData.extractedData`. If stored in Storage (`docData.extractedDataStoragePath`), use `getDownloadURL` for the JSON file and fetch its content.
-    *   Save Edits: Use `updateDoc(doc(db, "documents", documentId), { extractedData: updatedData, status: 'reviewing' })` directly from the client. Security rules handle permissions.
+    *   In `useEffect`, fetch documents:
+        ```typescript
+        import { collection, query, where, orderBy, getDocs, Timestamp } from "firebase/firestore";
+        import { db } from "@/lib/firebase/client";
+        import { useAuth } from "@/context/AuthContext";
 
-**Phase 6: Refinement**
+        // Inside component
+        const { user } = useAuth();
+        const [documents, setDocuments] = useState<any[]>([]); // Define a proper type later
+        const [loading, setLoading] = useState(true);
 
-1.  **Loading/Error States:** Implement robust loading and error states on all pages interacting with Firebase.
-2.  **Indexing:** Add Firestore indexes for `userId` and `status` on the `documents` collection via the Firebase Console to optimize history queries.
-3.  **Cleanup:** Consider adding Cloud Functions to delete Storage files when a Firestore document is deleted.
-4.  **Code Quality:** Ensure consistent error handling, use async/await properly, add comments.
+        useEffect(() => {
+          if (!user) return; // Don't fetch if no user
 
-This detailed plan shifts primary data interaction to the client-side SDKs, leveraging Firebase's security rules for authorization, which is often more straightforward and secure for web applications than managing backend sessions or token verification in simple API routes. Remember to replace the test rules with the secure ones **early** in your development process.
+          setLoading(true);
+          const fetchDocs = async () => {
+            try {
+              const q = query(
+                collection(db, "documents"),
+                where("userId", "==", user.uid),
+                orderBy("uploadTimestamp", "desc")
+              );
+              const querySnapshot = await getDocs(q);
+              const docsData = querySnapshot.docs.map(doc => ({
+                id: doc.id,
+                ...doc.data(),
+                 // Convert Firestore Timestamps to JS Dates if needed for formatting
+                 uploadTimestamp: (doc.data().uploadTimestamp as Timestamp)?.toDate(),
+              }));
+              setDocuments(docsData);
+            } catch (err) {
+              console.error("Error fetching documents:", err);
+              // Show error toast
+            } finally {
+              setLoading(false);
+            }
+          };
+          fetchDocs();
+        }, [user]); // Re-fetch if user changes
+
+        // Use 'documents' state to render the list instead of 'sampleDocuments'
+        // Add loading state UI
+        ```
+*   **Action 3: Update Review Page (`app/(dashboard)/dashboard/review/[id]/page.tsx`):**
+    *   Use `useAuth` to get `user`.
+    *   In `useEffect`:
+        *   Fetch Firestore metadata: `const docRef = doc(db, "documents", documentId); const docSnap = await getDoc(docRef);`
+        *   **Security Check:** `if (!docSnap.exists() || docSnap.data().userId !== user.uid) { /* Handle error/redirect */ }`
+        *   Get `docData = docSnap.data()`.
+        *   Get PDF URL: `const pdfUrl = await getDownloadURL(ref(storage, docData.storagePath)); setPdfUrl(pdfUrl);`
+        *   Fetch Extracted Data:
+            *   If `docData.extractedDataStoragePath`: `const dataUrl = await getDownloadURL(ref(storage, docData.extractedDataStoragePath)); const response = await fetch(dataUrl); const jsonData = await response.json(); setExtractedData(jsonData.data); setExtractionMetadata(jsonData.metadata);`
+            *   Else (if stored directly, less likely now): `setExtractedData(docData.extractedDataSummary || {}); setExtractionMetadata(docData.extractionMetadata || null);`
+    *   Update `handleConfirm` (Save): Use `updateDoc(doc(db, "documents", documentId), { extractedData: updatedData, status: 'completed' /* or reviewed */ });`
+    *   Update `handleExport`: Fetch full extracted data if needed before exporting.
+
+**Phase 6: Refinement & Production Readiness**
+
+*   **Error Handling:** Add comprehensive `try...catch` blocks for all Firebase operations (uploads, reads, writes) and API calls. Use `toast` for user feedback.
+*   **Loading States:** Implement loading indicators (spinners, skeletons) on pages/components during data fetching and processing.
+*   **Firestore Indexing:** Go to Firebase Console -> Firestore -> Indexes. Create composite indexes if needed (e.g., for filtering history by `userId` and `status` together). Firestore usually prompts for needed indexes.
+*   **Storage Cleanup (Optional but Recommended):** Implement a Cloud Function triggered by Firestore document deletion (`onDelete`) that deletes the corresponding files/folder in Cloud Storage to prevent orphaned files.
+*   **Scalability:** The current client-side approach with Security Rules scales well. The `/api/extract` route might become a bottleneck if many users extract simultaneously; consider deploying it as a scalable Cloud Function instead.
+*   **Code Review:** Ensure code follows SOLID principles, is well-commented, and uses TypeScript effectively.
+
+This plan provides a robust foundation using Firebase services securely and efficiently within your Next.js application structure. Remember to deploy security rules early and test thoroughly. Good luck – the fate of your AI provider choice (and potentially more!) rests on this!

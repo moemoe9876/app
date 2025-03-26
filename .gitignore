@@ -1,6 +1,6 @@
 # See https://help.github.com/articles/ignoring-files/ for more about ignoring files.
 
-# dependencies
+# Dependencies
 /node_modules
 /.pnp
 .pnp.*
@@ -10,32 +10,49 @@
 !.yarn/releases
 !.yarn/versions
 
-# testing
+# Testing
 /coverage
 
-# next.js
+# Next.js
 /.next/
 /out/
 
-# production
+# Production
 /build
 
-# misc
+# Misc
 .DS_Store
 *.pem
-
-# debug
+*.log # General log files
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
 .pnpm-debug.log*
 
-# env files (can opt-in for committing if needed)
-.env*
+# Environment variables - Contains secrets!
+.env.local
+.env.*.local # Ignore environment-specific local overrides (e.g., .env.development.local)
+.env # Ignore base .env file if used locally
 
-# vercel
+# Firebase Service Account Key - Highly sensitive credentials!
+firebase-service-account.json # Use the EXACT filename of your key file
+
+# TypeScript build info
+*.tsbuildinfo
+
+# Vercel deployment folder
 .vercel
 
-# typescript
-*.tsbuildinfo
-next-env.d.ts
+# Editor directories and files
+.vscode/*
+!.vscode/settings.json
+!.vscode/tasks.json
+!.vscode/launch.json
+!.vscode/extensions.json
+*.sublime-workspace
+
+# Optional: Cursor-specific (if you want to ignore its config)
+.cursor/
+
+# Optional: Uploads directory (if you don't want to track user uploads)
+/uploads/

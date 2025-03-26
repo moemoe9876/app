@@ -1,0 +1,146 @@
+/* /styles/auth-theme.css or /app/auth-theme.css */
+
+/* Define new variables and base styles ONLY within .auth-scope */
+.auth-scope {
+    /* Core Palette Variables */
+    --background-rgb: 10 10 12;
+    --foreground-rgb: 210 210 215;
+    --muted-rgb: 100 100 110;
+    --muted-foreground-rgb: 160 160 170;
+    --card-rgb: 18 18 20;
+    --card-foreground-rgb: var(--foreground-rgb);
+    --popover-rgb: 24 24 27;
+    --popover-foreground-rgb: var(--foreground-rgb);
+    --primary-rgb: 20 110 130;
+    --primary-foreground-rgb: 240 240 245;
+    --secondary-rgb: 50 50 55;
+    --secondary-foreground-rgb: var(--foreground-rgb);
+    --accent-rgb: 180 150 110;
+    --accent-foreground-rgb: 10 10 12;
+    --destructive-rgb: 153 27 27;
+    --destructive-foreground-rgb: var(--foreground-rgb);
+    --border-rgb: 40 40 45;
+    --input-rgb: 30 30 33;
+    --ring-rgb: var(--primary-rgb);
+  
+    /* Radius (can be overridden by Tailwind classes if needed) */
+    --radius: 0.3rem;
+    --radius-large: 6px;
+  
+    /* Apply base background/text color to the scope itself */
+    background-color: rgb(var(--background-rgb));
+    color: rgb(var(--foreground-rgb));
+    font-family: 'Inter', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  
+    /* Apply subtle noise texture to the scope */
+    background-image: linear-gradient(rgba(255,255,255,0.015) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,0.015) 1px, transparent 1px);
+    background-size: 1px 1px; /* Creates a very fine noise */
+  
+    /* Scope border color for elements within */
+    & * {
+       border-color: rgb(var(--border-rgb));
+    }
+  
+    /* Custom scrollbar for the theme (applied when .auth-scope is active) */
+     & ::-webkit-scrollbar {
+      width: 6px;
+      height: 6px;
+    }
+     & ::-webkit-scrollbar-track {
+      background: rgb(var(--background-rgb));
+    }
+     & ::-webkit-scrollbar-thumb {
+      background: rgb(var(--border-rgb));
+      border-radius: 3px;
+    }
+     & ::-webkit-scrollbar-thumb:hover {
+      background: rgb(var(--muted-rgb));
+    }
+  }
+  
+  /* Keyframes remain global, but are only used by scoped classes */
+  @keyframes scan {
+    0% { transform: translateY(-100%); opacity: 0.1; }
+    50% { opacity: 0.3; }
+    100% { transform: translateY(100%); opacity: 0; }
+  }
+  
+  @keyframes nebula-drift {
+    0% { background-position: 0% 0%; }
+    50% { background-position: 20% 10%; }
+    100% { background-position: 0% 0%; }
+  }
+  
+  @keyframes fadeIn {
+    from { opacity: 0; transform: translateY(10px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+  
+  
+  /* --- REMOVED @layer utilities wrapper --- */
+  
+  /* Scoped custom utility classes */
+  .auth-scope .text-depth {
+    text-shadow: 0px 1px 3px rgba(0, 0, 0, 0.5);
+  }
+  
+  .auth-scope .glow-sm {
+    box-shadow: 0 0 8px rgba(var(--primary-rgb), 0.3), 0 0 12px rgba(var(--primary-rgb), 0.2);
+  }
+  .auth-scope .glow-md {
+    box-shadow: 0 0 15px rgba(var(--primary-rgb), 0.4), 0 0 25px rgba(var(--primary-rgb), 0.3);
+  }
+  
+  /* Animated Scan Line - applied to elements with .scan-line within .auth-scope */
+  .auth-scope .scan-line::after {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 3px;
+    background: linear-gradient(to bottom, rgba(var(--primary-rgb), 0), rgba(var(--primary-rgb), 0.8), rgba(var(--primary-rgb), 0));
+    animation: scan 5s linear infinite;
+    pointer-events: none;
+    opacity: 0; /* Starts hidden */
+    z-index: 15;
+  }
+  /* Activation class needs scoping too */
+  .auth-scope .animate-scan-line {
+     animation-delay: 0.5s;
+  }
+   .auth-scope .animate-scan-line::after {
+     opacity: 0.1; /* Make it visible */
+   }
+  
+  /* Background Stardust/Nebula Effect - applied to elements with .nebula-bg within .auth-scope */
+   .auth-scope .nebula-bg {
+    position: absolute;
+    inset: 0;
+    z-index: -1; /* Behind content within its container */
+    background:
+      radial-gradient(ellipse at center, rgba(200, 200, 220, 0.03) 0%, transparent 60%),
+      radial-gradient(ellipse at top left, rgba(var(--primary-rgb), 0.1) 0%, transparent 50%),
+      radial-gradient(ellipse at bottom right, rgba(var(--accent-rgb), 0.08) 0%, transparent 55%);
+    background-size: 150% 150%, 200% 200%, 180% 180%;
+    animation: nebula-drift 90s ease-in-out infinite;
+    opacity: 0.6;
+   }
+  
+  /* Fade In Animation - applied to elements with .animate-fadeIn within .auth-scope */
+  .auth-scope .animate-fadeIn {
+    animation: fadeIn 0.6s ease-out forwards;
+  }
+  
+   /* Button Press Effect - applied to elements with .btn-press within .auth-scope */
+   .auth-scope .btn-press {
+     transition: transform 0.1s ease-out, box-shadow 0.1s ease-out;
+   }
+   .auth-scope .btn-press:active:not(:disabled) {
+      transform: scale(0.97);
+      box-shadow: inset 0 2px 4px rgba(0,0,0,0.3);
+   }
+  
+  /* --- END OF REMOVED @layer utilities wrapper --- */
