@@ -42,15 +42,11 @@ lerna-debug.log*
 firebase-service-account.json
 
 # Uploads directory - Contains user-uploaded or generated files
-# Uncomment the line below if you want to ignore the entire uploads directory
-# /uploads/
-# OR, if you only want to ignore specific things *inside* uploads, but track the dir structure:
-/uploads/*
-!/uploads/.gitkeep # Example: Keep the directory structure but ignore contents
-
+/uploads/
 
 # Cursor AI configuration directory - As requested
 /.cursor/
+
 
 # Editor directories and files
 .vscode/*

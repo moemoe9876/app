@@ -1,1 +1,0 @@
-extract name, line items, invoice id, and asn number 
