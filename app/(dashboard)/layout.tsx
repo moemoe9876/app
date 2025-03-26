@@ -1,10 +1,13 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import { useRouter } from "next/navigation";
 import { SidebarProvider, SidebarInset } from "@/components/ui/sidebar";
 import { AppSidebar } from "@/components/dashboard/app-sidebar";
 import { SiteHeader } from "@/components/dashboard/site-header";
 import { useSidebar } from "@/components/ui/sidebar";
+import { useAuth } from "@/context/AuthContext";
+import { Loader2 } from "lucide-react";
 
 // This component adds equal spacing based on sidebar state
 function DashboardContent({ children }: { children: React.ReactNode }) {
@@ -64,6 +67,8 @@ export default function DashboardLayout({
   children: React.ReactNode;
 }) {
   const [defaultOpen, setDefaultOpen] = useState(true);
+  const { user, loading } = useAuth();
+  const router = useRouter();
 
   useEffect(() => {
     // Check localStorage for sidebar state
@@ -72,6 +77,28 @@ export default function DashboardLayout({
       setDefaultOpen(savedState === "true");
     }
   }, []);
+
+  useEffect(() => {
+    // Redirect if not loading and no user
+    if (!loading && !user) {
+      console.log("Redirecting to login from dashboard layout");
+      router.replace('/login');
+    }
+  }, [user, loading, router]);
+
+  // Show loading state while checking authentication
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <Loader2 className="h-8 w-8 animate-spin" />
+      </div>
+    );
+  }
+
+  // Only render the dashboard layout if the user is authenticated
+  if (!user) {
+    return null;
+  }
 
   return (
     <div className="theme-default theme-scaled dashboard-background min-h-screen w-full flex overflow-hidden box-border p-4">

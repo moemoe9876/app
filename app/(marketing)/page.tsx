@@ -38,7 +38,11 @@ import {
   Settings,
   Shield,
   Users,
+  Loader2,
+  LogOut,
 } from "lucide-react"
+import { useAuth } from "@/context/AuthContext"
+import { UserNav } from "@/components/dashboard/user-nav"
 
 export default function LandingPage() {
   const [isMenuOpen, setIsMenuOpen] = useState(false)
@@ -50,6 +54,7 @@ export default function LandingPage() {
   const howItWorksRef = useRef<HTMLElement>(null)
   const testimonialsRef = useRef<HTMLElement>(null)
   const pricingRef = useRef<HTMLElement>(null)
+  const { user, loading, signOutUser } = useAuth()
 
   // Handle scroll events
   useEffect(() => {
@@ -171,18 +176,31 @@ export default function LandingPage() {
               </Tooltip>
             </TooltipProvider>
 
-            <Link
-              href="/login"
-              className="text-sm font-medium text-muted-foreground transition-colors hover:text-primary"
-            >
-              Log in
-            </Link>
-            <Button asChild className="relative overflow-hidden group">
-              <Link href="/dashboard">
-                <span className="relative z-10">Get Started</span>
-                <span className="absolute inset-0 bg-white/20 transform origin-left scale-x-0 group-hover:scale-x-100 transition-transform duration-500" />
-              </Link>
-            </Button>
+            {loading ? (
+              <Loader2 className="h-5 w-5 animate-spin" />
+            ) : user ? (
+              <>
+                <Button variant="ghost" asChild>
+                  <Link href="/dashboard">Dashboard</Link>
+                </Button>
+                <UserNav />
+              </>
+            ) : (
+              <>
+                <Link
+                  href="/login"
+                  className="text-sm font-medium text-muted-foreground transition-colors hover:text-primary"
+                >
+                  Log in
+                </Link>
+                <Button asChild className="relative overflow-hidden group">
+                  <Link href="/signup">
+                    <span className="relative z-10">Get Started</span>
+                    <span className="absolute inset-0 bg-white/20 transform origin-left scale-x-0 group-hover:scale-x-100 transition-transform duration-500" />
+                  </Link>
+                </Button>
+              </>
+            )}
           </div>
         </div>
 
@@ -229,16 +247,26 @@ export default function LandingPage() {
                   </div>
                 </div>
                 <div className="flex flex-col gap-2 pt-2 border-t">
-                  <Link
-                    href="/login"
-                    className="text-sm font-medium py-2 hover:text-primary"
-                    onClick={() => setIsMenuOpen(false)}
-                  >
-                    Log in
-                  </Link>
-                  <Button asChild className="w-full">
-                    <Link href="/dashboard">Get Started</Link>
-                  </Button>
+                  {loading ? (
+                    <div className="flex justify-center py-2"><Loader2 className="h-5 w-5 animate-spin" /></div>
+                  ) : user ? (
+                    <>
+                      <Link href="/dashboard" className="text-sm font-medium py-2 hover:text-primary" onClick={() => setIsMenuOpen(false)}>Dashboard</Link>
+                    </>
+                  ) : (
+                    <>
+                      <Link
+                        href="/login"
+                        className="text-sm font-medium py-2 hover:text-primary"
+                        onClick={() => setIsMenuOpen(false)}
+                      >
+                        Log in
+                      </Link>
+                      <Button asChild className="w-full">
+                        <Link href="/signup" onClick={() => setIsMenuOpen(false)}>Get Started</Link>
+                      </Button>
+                    </>
+                  )}
                 </div>
               </div>
             </motion.div>
@@ -319,9 +347,9 @@ export default function LandingPage() {
                 className="flex flex-col sm:flex-row gap-4 pt-4"
               >
                 <Button size="lg" className="h-12 px-8 group relative overflow-hidden" asChild>
-                  <Link href="/dashboard">
+                  <Link href={user ? "/dashboard" : "/signup"}>
                     <span className="relative z-10 flex items-center">
-                      Try for free
+                      {user ? "Go to Dashboard" : "Try for free"}
                       <ArrowRight className="ml-2 h-4 w-4 transition-transform group-hover:translate-x-1" />
                     </span>
                     <span className="absolute inset-0 bg-white/20 transform origin-left scale-x-0 group-hover:scale-x-100 transition-transform duration-500" />
@@ -938,9 +966,9 @@ export default function LandingPage() {
             className="mt-16 text-center"
           >
             <Button size="lg" className="h-12 px-8 group relative overflow-hidden" asChild>
-              <Link href="/dashboard">
+              <Link href={user ? "/dashboard" : "/signup"}>
                 <span className="relative z-10 flex items-center">
-                  Try it yourself
+                  {user ? "Go to Dashboard" : "Try it yourself"}
                   <ArrowRight className="ml-2 h-4 w-4 transition-transform group-hover:translate-x-1" />
                 </span>
                 <span className="absolute inset-0 bg-white/20 transform origin-left scale-x-0 group-hover:scale-x-100 transition-transform duration-500" />
@@ -1188,7 +1216,7 @@ export default function LandingPage() {
                       ))}
                     </ul>
                     <Button className="w-full mt-auto" variant={plan.buttonVariant} asChild>
-                      <Link href={plan.title === "Enterprise" ? "/contact" : "/dashboard"}>{plan.buttonText}</Link>
+                      <Link href={plan.title === "Enterprise" ? "/contact" : user ? "/dashboard" : "/signup"}>{plan.buttonText}</Link>
                     </Button>
                   </CardContent>
                 </Card>
@@ -1354,9 +1382,9 @@ export default function LandingPage() {
             </p>
             <div className="flex flex-col sm:flex-row justify-center gap-4">
               <Button size="lg" className="h-12 px-8 group relative overflow-hidden" asChild>
-                <Link href="/dashboard">
+                <Link href={user ? "/dashboard" : "/signup"}>
                   <span className="relative z-10 flex items-center">
-                    Start your free trial
+                    {user ? "Go to Dashboard" : "Start your free trial"}
                     <ArrowRight className="ml-2 h-4 w-4 transition-transform group-hover:translate-x-1" />
                   </span>
                   <span className="absolute inset-0 bg-white/20 transform origin-left scale-x-0 group-hover:scale-x-100 transition-transform duration-500" />
