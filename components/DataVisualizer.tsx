@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Download, Search, X, Filter, SlidersHorizontal } from "lucide-react";
+import { Download, Search, X, Filter, SlidersHorizontal, ChevronRight, ChevronDown } from "lucide-react";
 import { cn } from "@/lib/utils";
 import {
   Popover,
@@ -19,6 +19,7 @@ import {
   CollapsibleContent,
   CollapsibleTrigger,
 } from "@/components/ui/collapsible";
+import { Separator } from "@/components/ui/separator";
 import { InteractiveDataField } from "./InteractiveDataField";
 
 // Types
@@ -76,7 +77,56 @@ const flattenData = (data: any, prefix = ""): Record<string, any>[] => {
   Object.entries(data).forEach(([key, value]) => {
     const currentKey = prefix ? `${prefix}.${key}` : key;
 
-    if (value && typeof value === "object") {
+    // Special handling for line_items
+    if ((key === "line_items" || key.includes("items") || key.includes("products")) && Array.isArray(value)) {
+      console.log(`Rendering line items array with ${value.length} items`);
+      // Process each line item as a separate object
+      value.forEach((lineItem, index) => {
+        if (typeof lineItem === "object") {
+          if ("value" in lineItem && "confidence" in lineItem) {
+            // This is a simple line item with just a value (wrong format but we'll handle it)
+            result.push({
+              field: `Line Item [${index + 1}]`,
+              value: lineItem.value,
+              confidence: lineItem.confidence,
+              path: `${currentKey}[${index}]`,
+              location: (lineItem as FieldData).position,
+            });
+          } else {
+            // This is a properly structured line item with properties
+            Object.entries(lineItem).forEach(([propKey, propValue]) => {
+              if (propValue && typeof propValue === "object" && "value" in propValue) {
+                // Check if confidence exists, default to 1 if not
+                const confidence = "confidence" in propValue ? propValue.confidence as number : 1;
+                result.push({
+                  field: `Line Item [${index + 1}] ${formatFieldName(propKey)}`,
+                  value: propValue.value,
+                  confidence: confidence,
+                  path: `${currentKey}[${index}].${propKey}`,
+                  location: "position" in propValue ? (propValue as FieldData).position : undefined,
+                });
+              } else {
+                // Handle direct values in line items if they exist
+                result.push({
+                  field: `Line Item [${index + 1}] ${formatFieldName(propKey)}`,
+                  value: propValue,
+                  confidence: 1,
+                  path: `${currentKey}[${index}].${propKey}`,
+                });
+              }
+            });
+          }
+        } else {
+          // Handle primitive values in line_items array if they exist
+          result.push({
+            field: `Line Item [${index + 1}]`,
+            value: lineItem,
+            confidence: 1,
+            path: `${currentKey}[${index}]`,
+          });
+        }
+      });
+    } else if (value && typeof value === "object") {
       if ("value" in value && "confidence" in value) {
         // This is a field data object
         result.push({
@@ -289,18 +339,104 @@ export function DataVisualizer({
   const renderField = (key: string, data: any, path: string) => {
     if (!data) return null;
     
+    const formattedKey = key.replace(/_/g, " ");
+    const isExpanded = expandedSections.has(path);
+    
+    // Special handling for line_items
+    if ((key === "line_items" || key.includes("items") || key.includes("products")) && Array.isArray(data)) {
+      return (
+        <Collapsible
+          key={key}
+          open={isExpanded}
+          onOpenChange={() => toggleSection(path)}
+          className="w-full mb-4"
+        >
+          <div className="border-l-2 border-transparent hover:border-l-2 hover:border-primary/40 transition-colors">
+            <CollapsibleTrigger className="flex items-center w-full p-2 text-left rounded-md hover:bg-accent/50 group">
+              {isExpanded ? (
+                <ChevronDown className="h-4 w-4 mr-2 text-muted-foreground" />
+              ) : (
+                <ChevronRight className="h-4 w-4 mr-2 text-muted-foreground" />
+              )}
+              <h3 className="font-semibold capitalize text-sm">{formattedKey}</h3>
+              <Badge variant="outline" className="ml-2 text-xs bg-muted/50">
+                {data.length}
+              </Badge>
+            </CollapsibleTrigger>
+          </div>
+          
+          <CollapsibleContent className="pl-6 mt-1 space-y-2">
+            {data.map((item, index) => (
+              <div key={index} className="p-2 border border-muted rounded-md mb-2">
+                <h4 className="text-sm font-medium mb-1">Item {index + 1}</h4>
+                {typeof item === 'object' ? (
+                  "value" in item && "confidence" in item ? (
+                    // Handle simple line items with just value/confidence
+                    <InteractiveDataField
+                      key={`${path}[${index}]`}
+                      label={`Item ${index + 1}`}
+                      data={item}
+                      path={`${path}[${index}]`}
+                      onHover={handleFieldHover}
+                      onSelect={onSelect}
+                      showPositionInfo={options.includePositions !== false}
+                      className={`${path}[${index}]` === selectedFieldPath ? "bg-primary/20 border border-primary" : ""}
+                    />
+                  ) : (
+                    // Handle complex line items with multiple properties
+                    <div className="grid grid-cols-1 gap-2">
+                      {Object.entries(item).map(([itemKey, itemValue]) => (
+                        <div key={itemKey}>
+                          {itemValue && typeof itemValue === 'object' && "value" in itemValue ? (
+                            <InteractiveDataField
+                              key={`${path}[${index}].${itemKey}`}
+                              label={itemKey.replace(/_/g, " ")}
+                              data={{
+                                value: itemValue.value as string | number,
+                                confidence: "confidence" in itemValue ? itemValue.confidence as number : 1,
+                                position: "position" in itemValue ? itemValue.position as PositionData : undefined
+                              }}
+                              path={`${path}[${index}].${itemKey}`}
+                              onHover={handleFieldHover}
+                              onSelect={onSelect}
+                              showPositionInfo={options.includePositions !== false}
+                              className={`${path}[${index}].${itemKey}` === selectedFieldPath ? "bg-primary/20 border border-primary" : ""}
+                            />
+                          ) : (
+                            <div className="flex items-center justify-between">
+                              <span className="capitalize text-sm font-medium">{itemKey.replace(/_/g, " ")}:</span>
+                              <span>{String(itemValue)}</span>
+                            </div>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                  )
+                ) : (
+                  <div>{String(item)}</div>
+                )}
+              </div>
+            ))}
+          </CollapsibleContent>
+        </Collapsible>
+      );
+    }
+    
     if (typeof data === 'object' && 'value' in data && 'confidence' in data) {
       // This is a field with value and confidence
       return (
         <InteractiveDataField
           key={key}
-          label={key.replace(/_/g, " ")}
+          label={formattedKey}
           data={data}
           path={path}
           onHover={handleFieldHover}
           onSelect={onSelect}
           showPositionInfo={options.includePositions !== false}
-          className={path === selectedFieldPath ? "bg-primary/20 border border-primary" : ""}
+          className={cn(
+            path === selectedFieldPath ? "bg-primary/20 border border-primary" : "",
+            "mb-2"
+          )}
         />
       );
     }
@@ -308,9 +444,27 @@ export function DataVisualizer({
     if (Array.isArray(data)) {
       // Handle array of items
       return (
-        <div key={key} className="space-y-2">
-          <h3 className="font-medium capitalize">{key.replace(/_/g, " ")}</h3>
-          <div className="pl-4 border-l-2 border-muted space-y-2">
+        <Collapsible
+          key={key}
+          open={isExpanded}
+          onOpenChange={() => toggleSection(path)}
+          className="w-full mb-4"
+        >
+          <div className="border-l-2 border-transparent hover:border-l-2 hover:border-primary/40 transition-colors">
+            <CollapsibleTrigger className="flex items-center w-full p-2 text-left rounded-md hover:bg-accent/50 group">
+              {isExpanded ? (
+                <ChevronDown className="h-4 w-4 mr-2 text-muted-foreground" />
+              ) : (
+                <ChevronRight className="h-4 w-4 mr-2 text-muted-foreground" />
+              )}
+              <h3 className="font-semibold capitalize text-sm">{formattedKey}</h3>
+              <Badge variant="outline" className="ml-2 text-xs bg-muted/50">
+                {data.length}
+              </Badge>
+            </CollapsibleTrigger>
+          </div>
+          
+          <CollapsibleContent className="pl-6 mt-1 space-y-2">
             {data.map((item, index) => (
               <div key={index} className="space-y-2">
                 {typeof item === 'object' ? (
@@ -325,29 +479,44 @@ export function DataVisualizer({
                 )}
               </div>
             ))}
-          </div>
-        </div>
+          </CollapsibleContent>
+        </Collapsible>
       );
     }
     
     if (typeof data === 'object') {
       // Handle nested objects
       return (
-        <div key={key} className="space-y-2">
-          <h3 className="font-medium capitalize">{key.replace(/_/g, " ")}</h3>
-          <div className="pl-4 border-l-2 border-muted space-y-2">
+        <Collapsible
+          key={key}
+          open={isExpanded}
+          onOpenChange={() => toggleSection(path)}
+          className="w-full mb-4"
+        >
+          <div className="border-l-2 border-transparent hover:border-l-2 hover:border-primary/40 transition-colors">
+            <CollapsibleTrigger className="flex items-center w-full p-2 text-left rounded-md hover:bg-accent/50 group">
+              {isExpanded ? (
+                <ChevronDown className="h-4 w-4 mr-2 text-muted-foreground" />
+              ) : (
+                <ChevronRight className="h-4 w-4 mr-2 text-muted-foreground" />
+              )}
+              <h3 className="font-semibold capitalize text-sm">{formattedKey}</h3>
+            </CollapsibleTrigger>
+          </div>
+          
+          <CollapsibleContent className="pl-6 mt-1 space-y-2">
             {Object.entries(data).map(([nestedKey, nestedValue]) => 
               renderField(nestedKey, nestedValue, `${path}.${nestedKey}`)
             )}
-          </div>
-        </div>
+          </CollapsibleContent>
+        </Collapsible>
       );
     }
     
     // Handle primitive values
     return (
-      <div key={key} className="flex items-center justify-between p-2">
-        <span className="font-medium capitalize">{key.replace(/_/g, " ")}:</span>
+      <div key={key} className="flex items-center justify-between p-2 mb-2 rounded-md hover:bg-accent/50">
+        <span className="font-medium capitalize">{formattedKey}:</span>
         <span>{String(data)}</span>
       </div>
     );
@@ -356,15 +525,40 @@ export function DataVisualizer({
   // Render tree view
   const renderTreeView = () => {
     return (
-      <div className="space-y-4">
+      <div className="space-y-4 p-4">
         {Object.entries(filteredData).length === 0 ? (
           <div className="text-center py-8 text-muted-foreground">
             {searchQuery || minConfidence > 0 ? "No results match your filters" : "No data available"}
           </div>
         ) : (
-          Object.entries(filteredData).map(([key, value]) => 
-            renderField(key, value, key)
-          )
+          <>
+            <div className="flex items-center justify-end mb-2 gap-2">
+              <Button 
+                variant="ghost" 
+                size="sm" 
+                onClick={expandAll}
+                className="text-xs h-7 px-2"
+              >
+                Expand All
+              </Button>
+              <Button 
+                variant="ghost" 
+                size="sm" 
+                onClick={collapseAll}
+                className="text-xs h-7 px-2"
+              >
+                Collapse All
+              </Button>
+            </div>
+            <div className="space-y-4">
+              {Object.entries(filteredData).map(([key, value], index) => (
+                <React.Fragment key={key}>
+                  {index > 0 && <Separator className="my-2" />}
+                  {renderField(key, value, key)}
+                </React.Fragment>
+              ))}
+            </div>
+          </>
         )}
       </div>
     );
@@ -456,8 +650,9 @@ export function DataVisualizer({
                 <div className="space-y-2">
                   <h4 className="font-medium text-sm">Confidence Filter</h4>
                   <div className="flex items-center justify-between">
-                    <span className="text-sm">Min: {Math.round(minConfidence * 100)}%</span>
+                    <label htmlFor="confidence-filter" className="text-sm">Min: {Math.round(minConfidence * 100)}%</label>
                     <input 
+                      id="confidence-filter"
                       type="range" 
                       min="0" 
                       max="1" 
@@ -465,12 +660,35 @@ export function DataVisualizer({
                       value={minConfidence}
                       onChange={(e) => setMinConfidence(parseFloat(e.target.value))}
                       className="w-2/3"
+                      aria-label="Minimum confidence threshold"
                     />
                   </div>
                 </div>
               </div>
             </PopoverContent>
           </Popover>
+          <div className="flex gap-1">
+            <Button 
+              variant="outline" 
+              size="sm" 
+              className="h-8" 
+              onClick={exportAsCSV}
+              title="Export as CSV"
+            >
+              <Download className="h-3.5 w-3.5 mr-1" />
+              CSV
+            </Button>
+            <Button 
+              variant="outline" 
+              size="sm" 
+              className="h-8" 
+              onClick={exportAsJSON}
+              title="Export as JSON"
+            >
+              <Download className="h-3.5 w-3.5 mr-1" />
+              JSON
+            </Button>
+          </div>
         </div>
       </CardHeader>
       <div className="px-4 pb-2 pt-0 flex items-center gap-2">

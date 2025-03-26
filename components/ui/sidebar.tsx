@@ -404,13 +404,16 @@ export function SidebarTrigger({
 }: SidebarTriggerProps) {
   const { toggle, open } = useSidebar()
   
+  // Convert boolean 'open' state to string "true" or "false" for ARIA attribute
+  const ariaExpandedValue = open ? "true" : "false";
+  
   return (
     <button
       type="button"
       className={cn("size-6 rounded-md hover:bg-accent hover:text-accent-foreground", className)}
       onClick={toggle}
       aria-label={open ? "Collapse sidebar" : "Expand sidebar"}
-      aria-expanded={open}
+      aria-expanded={ariaExpandedValue}
       aria-controls="sidebar"
       {...props}
     >

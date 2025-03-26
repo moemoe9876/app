@@ -66,7 +66,7 @@ export function InteractiveDataField({
     <div
       id={`field-${path.replace(/\./g, '-')}`}
       className={cn(
-        "group flex items-center justify-between p-2 rounded-md transition-colors",
+        "group flex items-center p-2 rounded-md transition-colors",
         isHovered ? "bg-accent" : "hover:bg-accent/50",
         hasPosition ? "cursor-pointer" : "cursor-default",
         className
@@ -83,7 +83,7 @@ export function InteractiveDataField({
         }
       }}
     >
-      <div className="flex items-center gap-2">
+      <div className="flex items-center gap-2 mr-3">
         <div 
           className={cn(
             "w-2 h-2 rounded-full",
@@ -96,7 +96,7 @@ export function InteractiveDataField({
       <div className="flex items-center gap-2">
         <span>{String(data.value)}</span>
         {showPositionInfo && data.position && (
-          <div className="opacity-0 group-hover:opacity-100 transition-opacity">
+          <div className="opacity-0 group-hover:opacity-100 transition-opacity ml-2">
             <span className="text-xs text-muted-foreground">
               (Page {data.position.page_number})
             </span>
