@@ -1,7 +1,9 @@
+// tsconfig.json
 {
   "compilerOptions": {
     "target": "ES2017",
     "lib": ["dom", "dom.iterable", "esnext"],
+    "baseUrl": ".", // <-- ADD THIS LINE
     "allowJs": true,
     "skipLibCheck": true,
     "strict": true,

@@ -1,64 +1,32 @@
+// app/(dashboard)/layout.tsx
 "use client";
 
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { SidebarProvider, SidebarInset } from "@/components/ui/sidebar";
+// --- Use the NEW sidebar components ---
+import { SidebarProvider } from "@/components/ui/sidebar"; // Only Provider needed here
+// --- End Use the NEW sidebar components ---
 import { AppSidebar } from "@/components/dashboard/app-sidebar";
 import { SiteHeader } from "@/components/dashboard/site-header";
-import { useSidebar } from "@/components/ui/sidebar";
 import { useAuth } from "@/context/AuthContext";
 import { Loader2 } from "lucide-react";
+import { cn } from "@/lib/utils";
 
-// This component adds equal spacing based on sidebar state
-function DashboardContent({ children }: { children: React.ReactNode }) {
-  const { open } = useSidebar();
-  
-  // Add useEffect to log padding and spacing information
+// Helper hook to read cookies on the client-side
+function useCookie(name: string, defaultValue: string): string {
+  const [value, setValue] = useState(defaultValue);
+
   useEffect(() => {
-    if (typeof window !== 'undefined') {
-      // Log sidebar state
-      console.log('Sidebar open state:', open);
-      
-      // Log container dimensions on initial render and sidebar state change
-      const container = document.querySelector('.dashboard-container');
-      if (container) {
-        const containerRect = container.getBoundingClientRect();
-        const computedStyle = window.getComputedStyle(container);
-        
-        console.log('Dashboard container dimensions:', {
-          width: containerRect.width,
-          paddingLeft: computedStyle.paddingLeft,
-          paddingRight: computedStyle.paddingRight,
-          marginLeft: computedStyle.marginLeft,
-          marginRight: computedStyle.marginRight,
-        });
-      }
-      
-      // Log content padding
-      const contentDiv = document.querySelector('.dashboard-container > div:nth-child(2)');
-      if (contentDiv) {
-        const computedStyle = window.getComputedStyle(contentDiv);
-        console.log('Content padding:', {
-          paddingLeft: computedStyle.paddingLeft,
-          paddingRight: computedStyle.paddingRight,
-        });
-      }
+    if (typeof document !== 'undefined') {
+      const cookieValue = document.cookie
+        .split('; ')
+        .find(row => row.startsWith(`${name}=`))
+        ?.split('=')[1];
+      setValue(cookieValue || defaultValue);
     }
-  }, [open]);
-  
-  return (
-    <SidebarInset className="w-full max-w-full box-border">
-      <div className="dashboard-container flex-1 min-w-0 w-full h-[calc(100vh-2rem)] overflow-hidden p-4 md:p-6 lg:p-8 box-border rounded-lg mx-auto my-0">
-        <SiteHeader className="border-b border-border/50 mb-4" />
-        <div 
-          className="flex flex-1 flex-col h-[calc(100vh-140px)] overflow-y-auto overflow-x-hidden w-full"
-          data-content-container="true"
-        >
-          {children}
-        </div>
-      </div>
-    </SidebarInset>
-  );
+  }, [name, defaultValue]);
+
+  return value;
 }
 
 export default function DashboardLayout({
@@ -66,53 +34,58 @@ export default function DashboardLayout({
 }: {
   children: React.ReactNode;
 }) {
-  const [defaultOpen, setDefaultOpen] = useState(true);
+  const sidebarStateCookie = useCookie("sidebar_state", "true");
+  // Default to closed for offcanvas unless cookie says otherwise
+  const defaultOpen = sidebarStateCookie === "true";
+
   const { user, loading } = useAuth();
   const router = useRouter();
 
   useEffect(() => {
-    // Check localStorage for sidebar state
-    const savedState = localStorage.getItem("sidebar_state");
-    if (savedState !== null) {
-      setDefaultOpen(savedState === "true");
-    }
-  }, []);
-
-  useEffect(() => {
-    // Redirect if not loading and no user
     if (!loading && !user) {
       console.log("Redirecting to login from dashboard layout");
       router.replace('/login');
     }
   }, [user, loading, router]);
 
-  // Show loading state while checking authentication
   if (loading) {
     return (
-      <div className="flex items-center justify-center min-h-screen">
-        <Loader2 className="h-8 w-8 animate-spin" />
+      <div className="flex items-center justify-center min-h-screen bg-background">
+        <Loader2 className="h-8 w-8 animate-spin text-primary" />
       </div>
     );
   }
 
-  // Only render the dashboard layout if the user is authenticated
   if (!user) {
     return null;
   }
 
   return (
-    <div className="theme-default theme-scaled dashboard-background min-h-screen w-full flex overflow-hidden box-border p-4">
-      <SidebarProvider
-        defaultOpen={defaultOpen}
-        style={{
-          "--sidebar-width": "calc(var(--spacing) * 60)",
-          "--sidebar-width-collapsed": "calc(var(--spacing) * 14)",
-          "--header-height": "60px",
-        } as React.CSSProperties}
-      >
-        <AppSidebar variant="inset" />
-        <DashboardContent>{children}</DashboardContent>
-      </SidebarProvider>
-    </div>
+    <SidebarProvider
+      defaultOpen={defaultOpen}
+      style={
+        {
+          "--sidebar-width": "20rem", // Your desired expanded width
+          "--header-height": "60px", // Your header height
+          "--spacing": "0.25rem",
+        } as React.CSSProperties
+      }
+      // The wrapper needs to allow the fixed sidebar and the main content flow
+      className="min-h-screen" // Removed flex here
+    >
+      {/* Sidebar will be positioned fixed/absolute via its own component logic */}
+      <AppSidebar collapsible="offcanvas" />
+
+      {/* Main content area - occupies space normally */}
+      {/* Add padding-top to account for the fixed header */}
+      <div className="flex flex-col md:pl-[var(--sidebar-width)] transition-[padding] duration-200 ease-linear group-data-[state=collapsed]/sidebar-wrapper:md:pl-0">
+        {/* SiteHeader is likely fixed or sticky itself */}
+        <SiteHeader />
+        {/* Content area */}
+        <main className="flex-1 overflow-auto p-4 md:p-6 lg:p-8">
+           {children}
+        </main>
+      </div>
+    </SidebarProvider>
   );
-} 
+}

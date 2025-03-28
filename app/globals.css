@@ -1,11 +1,12 @@
+/* app/globals.css */
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
 @layer base {
   :root {
-    /* Base colors */
-    --background: 0 0% 100%; /* White main content background */
+    /* --- YOUR EXISTING BASE COLORS --- */
+    --background: 0 0% 100%;
     --foreground: 0 0% 15%;
     --card: 0 0% 100%;
     --card-foreground: 0 0% 15%;
@@ -17,65 +18,49 @@
     --secondary-foreground: 0 0% 40%;
     --muted: 0 0% 94%;
     --muted-foreground: 0 0% 45%;
-    --accent: 0 0% 94%;
-    --accent-foreground: 0 0% 40%;
+    --accent: 0 0% 90%;
+    --accent-foreground: 0 0% 20%;
     --destructive: 0 84% 60%;
     --destructive-foreground: 0 0% 98%;
-    --border: 0 0% 90%;
-    --input: 0 0% 90%;
+    --border: 0 0% 88%;
+    --input: 0 0% 92%;
     --ring: 0 0% 40%;
     --radius: 0.5rem;
     --radius-large: 12px;
-    
-    /* Chart colors */
-    --chart-1: 0 0% 60%;
-    --chart-2: 0 0% 40%;
-    --chart-3: 0 0% 20%;
-    --chart-4: 0 0% 80%;
-    --chart-5: 142 70% 45%;
-    
-    /* Spacing variables */
+
+    /* --- SHADCN EXAMPLE CHART COLORS --- */
+    --chart-1: oklch(0.646 0.222 41.116);
+    --chart-2: oklch(0.6 0.118 184.704);
+    --chart-3: oklch(0.398 0.07 227.392);
+    --chart-4: oklch(0.828 0.189 84.429);
+    --chart-5: oklch(0.769 0.188 70.08);
+
+    /* --- SIDEBAR COLORS (Light - Adjusted for consistency) --- */
+    --sidebar: hsl(0, 0%, 98%); /* HSL value for light sidebar */
+    --sidebar-foreground: hsl(0, 0%, 15%);
+    --sidebar-primary: hsl(0, 0%, 35%); /* Match primary */
+    --sidebar-primary-foreground: hsl(0, 0%, 98%); /* Match primary-foreground */
+    --sidebar-accent: hsl(0, 0%, 92%); /* Slightly darker accent */
+    --sidebar-accent-foreground: hsl(0, 0%, 15%);
+    --sidebar-border: hsl(0, 0%, 88%); /* Match border */
+    --sidebar-ring: hsl(0, 0%, 40%); /* Match ring */
+    --sidebar-muted-foreground: hsl(0, 0%, 45%); /* Match muted-foreground */
+
+    /* --- DASHBOARD LAYOUT VARIABLES (Keep these) --- */
+    --header-height: 60px;
     --spacing: 0.25rem;
     --font-sans: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
-    
-    /* Color neutral variables for themes */
-    --color-neutral-50: hsl(0, 0%, 98%);
-    --color-neutral-100: hsl(0, 0%, 96%);
-    --color-neutral-200: hsl(0, 0%, 90%);
-    --color-neutral-300: hsl(0, 0%, 80%);
-    --color-neutral-400: hsl(0, 0%, 65%);
-    --color-neutral-500: hsl(0, 0%, 45%);
-    --color-neutral-600: hsl(0, 0%, 35%);
-    --color-neutral-700: hsl(0, 0%, 25%);
-    --color-neutral-800: hsl(0, 0%, 20%);
-    --color-neutral-900: hsl(0, 0%, 15%);
-    --color-neutral-950: hsl(0, 0%, 10%);
-    
-    /* Success color (used sparingly) */
-    --color-success-50: hsl(142, 80%, 97%);
-    --color-success-500: hsl(142, 70%, 45%);
-    --color-success-600: hsl(142, 70%, 35%);
-    
-    /* Sidebar specific colors for light mode - Updated for light theme */
-    --sidebar-background: hsl(0, 0%, 94%); /* #F0F0F0 - Grayish White */
-    --sidebar-foreground: var(--color-neutral-900);
-    --sidebar-muted-foreground: var(--color-neutral-500);
-    --sidebar-accent: hsl(0, 0%, 90%); /* Adjusted accent for new background */
-    --sidebar-accent-foreground: var(--color-neutral-900);
-    
-    /* Dashboard specific variables */
-    --header-height: calc(var(--spacing) * 12 + 1px);
-    --sidebar-width: 240px;
-    --sidebar-width-collapsed: 60px;
+    /* --sidebar-width set via style prop */
+    --sidebar-width-icon: 3rem;
   }
 
   .dark {
-    /* Dark mode base colors - Updated with complementary colors to Space Gray */
-    --background: 210 5% 8%; /* Subtle blue-black that complements Space Gray */
+    /* --- YOUR EXISTING DARK MODE BASE COLORS --- */
+    --background: 210 5% 8%;
     --foreground: 210 15% 98%;
     --card: 210 5% 15%;
     --card-foreground: 210 15% 98%;
-    --popover: 210 5% 15%;
+    --popover: 210 5% 15%; /* Adjusted popover */
     --popover-foreground: 210 15% 98%;
     --primary: 210 15% 50%;
     --primary-foreground: 210 15% 5%;
@@ -83,116 +68,55 @@
     --secondary-foreground: 210 15% 98%;
     --muted: 210 5% 22%;
     --muted-foreground: 210 15% 65%;
-    --accent: 210 5% 25%;
+    --accent: 210 5% 28%;
     --accent-foreground: 210 15% 98%;
     --destructive: 0 65% 30%;
     --destructive-foreground: 210 15% 98%;
     --border: 210 5% 25%;
     --input: 210 5% 25%;
     --ring: 210 15% 65%;
-    --chart-1: 210 15% 75%;
-    --chart-2: 210 15% 55%;
-    --chart-3: 210 15% 35%;
-    --chart-4: 210 15% 95%;
-    --chart-5: 142 60% 40%;
-    
-    /* Sidebar specific colors for dark mode - Space Gray remains the same */
-    --sidebar-background: hsl(0, 0%, 20%); /* #333333 - Space Gray */
+
+    /* --- SHADCN EXAMPLE CHART COLORS (Dark) --- */
+    --chart-1: oklch(0.488 0.243 264.376);
+    --chart-2: oklch(0.696 0.17 162.48);
+    --chart-3: oklch(0.769 0.188 70.08);
+    --chart-4: oklch(0.627 0.265 303.9);
+    --chart-5: oklch(0.645 0.246 16.439);
+
+    /* --- SIDEBAR COLORS (Dark - Adjusted for consistency) --- */
+    --sidebar: hsl(210, 5%, 13%); /* HSL value for dark sidebar */
     --sidebar-foreground: hsl(210, 15%, 90%);
-    --sidebar-muted-foreground: hsl(210, 15%, 65%);
-    --sidebar-accent: hsl(210, 5%, 25%); /* Adjusted accent for new background */
+    --sidebar-primary: hsl(210, 15%, 50%); /* Match primary */
+    --sidebar-primary-foreground: hsl(210, 15%, 5%); /* Match primary-foreground */
+    --sidebar-accent: hsl(210, 5%, 20%); /* Slightly darker accent */
     --sidebar-accent-foreground: hsl(210, 15%, 90%);
+    --sidebar-border: hsl(210, 5%, 25%); /* Match border */
+    --sidebar-ring: hsl(210, 15%, 65%); /* Match ring */
+    --sidebar-muted-foreground: hsl(210, 15%, 65%); /* Match muted-foreground */
   }
 
   * {
-    @apply border-border;
+    @apply border-border outline-ring/50;
   }
 
   body {
-    @apply bg-sidebar-background text-foreground;
+    /* Apply the standard background */
+    @apply bg-background text-foreground;
   }
 
-  /* Apply text colors to headings */
   h1, h2, h3, h4, h5, h6 {
     @apply text-foreground;
   }
 }
 
-/* Define CSS container queries for responsive components */
-@layer utilities {
-  .size-8 {
-    width: 2rem;
-    height: 2rem;
-  }
-  
-  .size-4 {
-    width: 1rem;
-    height: 1rem;
-  }
-  
-  .size-5 {
-    width: 1.25rem;
-    height: 1.25rem;
-  }
-  
-  .text-balance {
-    text-wrap: balance;
-  }
-
-  .rounded-large {
-    border-radius: 16px;
-  }
-  
-  @media (min-width: 640px) {
-    .rounded-large {
-      border-radius: 16px;
-    }
-  }
-  
-  @media (min-width: 1024px) {
-    .rounded-large {
-      border-radius: 16px;
-    }
-  }
-}
-
-/* Dashboard container styles */
-.dashboard-container {
-  @apply w-full flex-1 bg-background overflow-hidden shadow-[0_5px_15px_rgba(0,0,0,0.05)] border border-border/30 flex flex-col;
-  min-width: 0;
-  max-width: 100%;
-  min-height: calc(100vh - 8px);
-  flex-shrink: 1;
-  margin: 4px 0;
-  border-radius: 12px;
-}
-
-.dark .dashboard-container {
-  @apply shadow-[0_5px_15px_rgba(0,0,0,0.15)];
-}
-
-/* Set the dashboard background to match sidebar */
-.dashboard-background {
-  @apply bg-sidebar-background;
-}
-
-/* Theme scaling for different screen sizes */
+/* --- SHADCN EXAMPLE THEME SCALING (Keep if needed) --- */
 .theme-scaled {
   @media (min-width: 1024px) {
     --radius: 0.6rem;
-    --radius-large: 12px;
     --text-lg: 1.05rem;
     --text-base: 0.85rem;
     --text-sm: 0.8rem;
     --spacing: 0.222222rem;
-  }
-
-  @media (min-width: 1280px) {
-    --radius-large: 12px;
-  }
-
-  @media (min-width: 1536px) {
-    --radius-large: 12px;
   }
 
   [data-slot="card"] {
@@ -205,198 +129,62 @@
   }
 }
 
-/* Print mode - remove shadows and border radiuses */
-@media print {
-  * {
-    @apply !rounded-none !shadow-none;
-  }
+/* --- SHADCN EXAMPLE THEME OVERRIDES (Keep if needed) --- */
+.theme-default,
+.theme-default-scaled {
+  /* Uses base variables */
+}
 
-  body {
-    @apply !bg-white text-black;
-  }
-  
-  .dashboard-main {
-    @apply !w-full !ml-0;
-  }
-  
-  .dashboard-sidebar {
-    @apply !hidden;
+.theme-blue,
+.theme-blue-scaled {
+  --primary: var(--color-blue-600);
+  --primary-foreground: var(--color-blue-50);
+
+  @media (prefers-color-scheme: dark) {
+    --primary: var(--color-blue-500);
+    --primary-foreground: var(--color-blue-50);
   }
 }
+/* Add other theme overrides if needed */
 
-/* Auth page animations */
-@keyframes float {
-  0% { transform: translateY(0px); }
-  50% { transform: translateY(-10px); }
-  100% { transform: translateY(0px); }
+/* --- MAIN CONTENT PADDING FOR OFFCANVAS SIDEBAR --- */
+/* Apply padding-left to the main content area when sidebar is expanded */
+/* Targets the second direct child (main content div) of the wrapper */
+[data-slot="sidebar-wrapper"]:not([data-state=collapsed]) > div:nth-child(2) {
+  @apply md:pl-[var(--sidebar-width)];
 }
 
-@keyframes pulse {
-  0%, 100% { opacity: 0.8; }
-  50% { opacity: 1; }
+/* Remove padding-left when sidebar is collapsed */
+[data-slot="sidebar-wrapper"][data-state=collapsed] > div:nth-child(2) {
+  @apply md:pl-0;
 }
+/* Add equivalent rules for right-sided sidebar if needed */
+/*
+[data-slot="sidebar-wrapper"][data-side=right]:not([data-state=collapsed]) > div:nth-child(2) {
+  @apply md:pr-[var(--sidebar-width)] md:pl-0;
+}
+[data-slot="sidebar-wrapper"][data-side=right][data-state=collapsed] > div:nth-child(2) {
+  @apply md:pr-0;
+}
+*/
+/* --- END MAIN CONTENT PADDING --- */
 
-@keyframes shine {
-  0% {
-    left: -100%;
+
+/* --- OTHER UTILITIES --- */
+@layer utilities {
+  .text-balance {
+    text-wrap: balance;
   }
-  50%, 100% {
-    left: 100%;
-  }
 }
 
-@keyframes gradient-x {
-  0% { background-position: 0% 50%; }
-  50% { background-position: 100% 50%; }
-  100% { background-position: 0% 50%; }
+/* Keyframes */
+@keyframes accordion-down {
+  from { height: 0px; }
+  to { height: var(--radix-accordion-content-height); }
 }
 
-@keyframes gradient-y {
-  0% { background-position: 50% 0%; }
-  50% { background-position: 50% 100%; }
-  100% { background-position: 50% 0%; }
+@keyframes accordion-up {
+  from { height: var(--radix-accordion-content-height); }
+  to { height: 0px; }
 }
-
-@keyframes border-glow {
-  0%, 100% { border-color: rgba(var(--primary-rgb), 0.5); }
-  50% { border-color: rgba(var(--primary-rgb), 0.9); }
-}
-
-.auth-shine-effect {
-  position: relative;
-  overflow: hidden;
-}
-
-.auth-shine-effect::before {
-  content: '';
-  position: absolute;
-  top: 0;
-  width: 30%;
-  height: 100%;
-  background: linear-gradient(
-    to right,
-    rgba(255, 255, 255, 0) 0%,
-    rgba(255, 255, 255, 0.3) 50%,
-    rgba(255, 255, 255, 0) 100%
-  );
-  transform: skewX(-30deg);
-  animation: shine 3s infinite;
-  pointer-events: none;
-}
-
-/* Floating orbs animation */
-.orb-container {
-  position: absolute;
-  inset: 0;
-  overflow: hidden;
-  opacity: 0.5;
-  z-index: 0;
-  pointer-events: none;
-}
-
-.orb {
-  position: absolute;
-  border-radius: 50%;
-  filter: blur(40px);
-  opacity: 0.4;
-  animation: float 8s ease-in-out infinite;
-}
-
-.orb-space-gray {
-  filter: blur(60px);
-  opacity: 0.2;
-}
-
-.orb-space-gray:nth-child(1) {
-  width: 180px;
-  height: 180px;
-  left: 10%;
-  top: 20%;
-  background: rgba(80, 80, 80, 0.2);
-  animation-delay: 0s;
-  animation-duration: 15s;
-}
-
-.orb-space-gray:nth-child(2) {
-  width: 220px;
-  height: 220px;
-  right: 10%;
-  top: 40%;
-  background: rgba(45, 45, 45, 0.15);
-  animation-delay: -5s;
-  animation-duration: 18s;
-}
-
-.orb-space-gray:nth-child(3) {
-  width: 150px;
-  height: 150px;
-  left: 20%;
-  bottom: 20%;
-  background: rgba(60, 60, 60, 0.1);
-  animation-delay: -8s;
-  animation-duration: 12s;
-}
-
-.orb:nth-child(1) {
-  width: 150px;
-  height: 150px;
-  left: 10%;
-  top: 20%;
-  background: rgba(var(--primary-rgb), 0.4);
-  animation-delay: 0s;
-  animation-duration: 10s;
-}
-
-.orb:nth-child(2) {
-  width: 180px;
-  height: 180px;
-  right: 10%;
-  top: 40%;
-  background: rgba(var(--chart-5-rgb), 0.3);
-  animation-delay: -2s;
-  animation-duration: 12s;
-}
-
-.orb:nth-child(3) {
-  width: 120px;
-  height: 120px;
-  left: 20%;
-  bottom: 20%;
-  background: rgba(var(--chart-1-rgb), 0.3);
-  animation-delay: -4s;
-  animation-duration: 8s;
-}
-
-/* Animated underline effect */
-.animated-underline {
-  position: relative;
-}
-
-.animated-underline::after {
-  content: '';
-  position: absolute;
-  width: 0;
-  height: 1.5px;
-  bottom: -2px;
-  left: 50%;
-  background-color: currentColor;
-  transition: all 0.3s ease-in-out;
-  transform: translateX(-50%);
-}
-
-.animated-underline:hover::after {
-  width: 100%;
-}
-
-/* Interactive inputs */
-.input-highlight:focus-within {
-  @apply ring-2 ring-zinc-500/50 ring-offset-0 border-zinc-600/50 transition-all duration-300 ease-in-out;
-  box-shadow: 0 0 0 1px rgba(24, 24, 27, 0.2), 
-              0 0 0 4px rgba(24, 24, 27, 0.2);
-}
-
-.input-highlight:focus-within label {
-  @apply text-zinc-300 font-medium;
-  transform: translateY(-1px);
-  transition: all 0.3s ease;
-}
+/* Add other keyframes */

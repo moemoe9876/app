@@ -93,23 +93,20 @@ export default function LoginPage() {
           <div className="p-6 sm:p-8 space-y-5">
             <div className="text-center space-y-2">
               <h1 className="text-2xl font-semibold text-[rgb(var(--foreground-rgb))] text-depth">
-                Access Terminal
+                Sign In
               </h1>
-              <p className="text-sm text-[rgb(var(--muted-foreground-rgb))]">
-                Authenticate to proceed to dashboard.
-              </p>
             </div>
 
             <form onSubmit={handleEmailLogin} className="space-y-4">
               {/* Email Input */}
               <div className="space-y-1.5 group">
                 <Label htmlFor="email" className="text-xs font-medium text-[rgb(var(--muted-foreground-rgb))] group-focus-within:text-[rgb(var(--primary-rgb))] transition-colors duration-200">
-                  Identifier (Email)
+                  Email
                 </Label>
                 <Input
                   id="email"
                   type="email"
-                  placeholder="user@domain.com"
+                  placeholder="user@gmail.com"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   required
@@ -122,7 +119,7 @@ export default function LoginPage() {
               {/* Password Input */}
               <div className="space-y-1.5 group">
                 <Label htmlFor="password" className="text-xs font-medium text-[rgb(var(--muted-foreground-rgb))] group-focus-within:text-[rgb(var(--primary-rgb))] transition-colors duration-200">
-                  Passcode
+                  Password
                 </Label>
                 <Input
                   id="password"
@@ -138,11 +135,11 @@ export default function LoginPage() {
               </div>
 
               {/* Forgot Password Link (Optional) */}
-              {/* <div className="text-right">
+                <div className="text-right">
                 <Link href="/forgot-password" className="text-xs text-[rgb(var(--muted-foreground-rgb))] hover:text-[rgb(var(--accent-rgb))] transition-colors duration-200 underline underline-offset-2">
                   Forgot Passcode?
                 </Link>
-              </div> */}
+              </div> 
 
               {/* Submit Button */}
               <Button
@@ -167,7 +164,7 @@ export default function LoginPage() {
               </div>
               <div className="relative flex justify-center text-xs uppercase">
                 <span className="bg-[rgb(var(--card-rgb))] px-2 text-[rgb(var(--muted-foreground-rgb))]">
-                  Or Connect Via
+                  Or
                 </span>
               </div>
             </div>
@@ -186,7 +183,7 @@ export default function LoginPage() {
               ) : (
                 <GoogleIcon />
               )}
-              Google Identity Service
+              Continue with Google
             </Button>
 
             {/* Footer Link */}

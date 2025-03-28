@@ -95,23 +95,20 @@ export default function SignupPage() {
           <div className="p-6 sm:p-8 space-y-5">
             <div className="text-center space-y-2">
               <h1 className="text-2xl font-semibold text-[rgb(var(--foreground-rgb))] text-depth">
-                Registration Protocol
+                Create Account
               </h1>
-               <p className="text-sm text-[rgb(var(--muted-foreground-rgb))]">
-                Create your access credentials.
-              </p>
             </div>
 
             <form onSubmit={handleEmailSignup} className="space-y-4">
                {/* Email Input */}
               <div className="space-y-1.5 group">
                 <Label htmlFor="email" className="text-xs font-medium text-[rgb(var(--muted-foreground-rgb))] group-focus-within:text-[rgb(var(--primary-rgb))] transition-colors duration-200">
-                  Email Address
+                  Email
                 </Label>
                 <Input
                   id="email"
                   type="email"
-                  placeholder="Your email address"
+                  placeholder="user@gmail.com"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   required
@@ -124,12 +121,12 @@ export default function SignupPage() {
               {/* Password Input */}
               <div className="space-y-1.5 group">
                 <Label htmlFor="password" className="text-xs font-medium text-[rgb(var(--muted-foreground-rgb))] group-focus-within:text-[rgb(var(--primary-rgb))] transition-colors duration-200">
-                  Secure Passcode
+                  Password
                 </Label>
                 <Input
                   id="password"
                   type="password"
-                  placeholder="Min. 6 characters"
+                  placeholder="Enter your password"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   required
@@ -137,9 +134,6 @@ export default function SignupPage() {
                   // Use CSS variables defined within .auth-scope
                   className="h-10 px-3 bg-[rgb(var(--input-rgb))] border border-[rgb(var(--border-rgb))] rounded-md text-sm text-[rgb(var(--foreground-rgb))] placeholder:text-[rgb(var(--muted-rgb))] focus:border-[rgb(var(--primary-rgb))] focus:ring-1 focus:ring-[rgb(var(--primary-rgb))] focus:ring-opacity-50 focus:outline-none transition duration-200"
                 />
-                 <p className="text-xs text-[rgb(var(--muted-foreground-rgb))] pt-1">
-                    Ensure your passcode is secure.
-                 </p>
               </div>
 
 
@@ -166,7 +160,7 @@ export default function SignupPage() {
               </div>
               <div className="relative flex justify-center text-xs uppercase">
                 <span className="bg-[rgb(var(--card-rgb))] px-2 text-[rgb(var(--muted-foreground-rgb))]">
-                  Or External Protocol
+                  Or
                 </span>
               </div>
             </div>
@@ -185,7 +179,7 @@ export default function SignupPage() {
               ) : (
                 <GoogleIcon />
               )}
-              Link via Google Core
+              Continue with Google
             </Button>
 
             {/* Footer Link */}
