@@ -18,7 +18,6 @@ import {
   LogOut,
   MoreVertical,
   CreditCard,
-  Bell,
 } from "lucide-react"
 
 import {
@@ -31,8 +30,6 @@ import {
   SidebarMenuItem,
   SidebarGroup,
   SidebarGroupContent,
-  SidebarGroupLabel,
-  useSidebar,
 } from "@/components/ui/sidebar"
 
 import { Switch } from "@/components/ui/switch" 
@@ -121,9 +118,9 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
                    <FileText className="h-4 w-4" />
                 </div>
                 <div className="grid flex-1 text-left text-sm leading-tight group-data-[state=collapsed]:hidden">
-                  <span className="truncate font-medium">Ingestio.io</span>
+                  <span className="truncate font-large text-[1.5em] font-bold">Ingestio.io</span>
                   <span className="truncate text-xs text-sidebar-muted-foreground">
-                    {user?.email ? 'Active' : 'Loading...'}
+
                   </span>
                 </div>
               </Link>
