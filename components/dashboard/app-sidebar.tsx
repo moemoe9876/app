@@ -18,7 +18,6 @@ import {
   LogOut,
 } from "lucide-react"
 
-// --- Use the NEW sidebar components ---
 import {
   Sidebar,
   SidebarContent,
@@ -32,14 +31,13 @@ import {
   SidebarGroupLabel,
   useSidebar,
 } from "@/components/ui/sidebar"
-// --- End Use the NEW sidebar components ---
 
-import { Switch } from "@/components/ui/switch" // Use project's ui switch
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar" // Use project's ui avatar
+import { Switch } from "@/components/ui/switch" 
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar" 
 import { useTheme } from "next-themes"
 import { cn } from "@/lib/utils"
 import { useAuth } from "@/context/AuthContext"
-import { UserNav } from "./user-nav";
+import { UserNav } from "@/components/dashboard/user-nav";
 
 const navMain = [
   {
@@ -96,26 +94,21 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
 
   return (
     <Sidebar
-      // --- ADDED/MODIFIED PROPS ---
-      variant="inset"
-      collapsible="offcanvas"
-      // --- END ADDED/MODIFIED PROPS ---
-      className="bg-sidebar dark:bg-sidebar border-none" // Use sidebar specific colors
+      className="bg-sidebar dark:bg-sidebar overflow-hidden"
       {...props}
     >
-      <SidebarHeader className="border-b border-sidebar-border p-2"> {/* Add padding & border */}
+      <SidebarHeader className="p-2">
         <SidebarMenu>
           <SidebarMenuItem>
             <SidebarMenuButton
               asChild
-              size="lg" // Match example header item size
-              className="data-[slot=sidebar-menu-button]:!p-2" // Adjust padding
+              size="lg"
+              className="data-[slot=sidebar-menu-button]:!p-2"
             >
               <Link href="/dashboard" className="flex items-center gap-2">
                 <div className="bg-sidebar-primary text-sidebar-primary-foreground flex aspect-square size-8 items-center justify-center rounded-lg">
                    <FileText className="h-4 w-4" />
                 </div>
-                {/* Hide text when collapsed */}
                 <div className="grid flex-1 text-left text-sm leading-tight group-data-[state=collapsed]:hidden">
                   <span className="truncate font-medium">Ingestio.io</span>
                   <span className="truncate text-xs text-sidebar-muted-foreground">
@@ -128,7 +121,7 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
         </SidebarMenu>
       </SidebarHeader>
 
-      <SidebarContent className="p-2"> {/* Add padding */}
+      <SidebarContent className="p-2">
         {/* Main Navigation */}
         <SidebarGroup>
           <SidebarGroupContent>
@@ -137,7 +130,7 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
               <SidebarMenuItem>
                  <SidebarMenuButton
                     tooltip="Quick Upload"
-                    className="bg-primary text-primary-foreground hover:bg-primary/90 hover:text-primary-foreground font-semibold active:bg-primary/90 active:text-primary-foreground min-w-8 duration-200 ease-linear w-full justify-center group-data-[state=expanded]:justify-start" // Center icon when collapsed
+                    className="bg-primary text-primary-foreground hover:bg-primary/90 hover:text-primary-foreground font-semibold active:bg-primary/90 active:text-primary-foreground min-w-8 duration-200 ease-linear w-full justify-center group-data-[state=expanded]:justify-start rounded-md"
                     asChild
                   >
                     <Link href="/dashboard/upload">
@@ -153,7 +146,7 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
                     asChild
                     tooltip={item.title}
                     isActive={pathname === item.url}
-                    className="w-full justify-center group-data-[state=expanded]:justify-start" // Center icon when collapsed
+                    className="w-full justify-center group-data-[state=expanded]:justify-start rounded-md"
                   >
                     <Link href={item.url}>
                       <item.icon className="h-4 w-4" />
@@ -177,7 +170,7 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
                     asChild
                     tooltip={item.title}
                     isActive={pathname === item.url}
-                    className="w-full justify-center group-data-[state=expanded]:justify-start" // Center icon when collapsed
+                    className="w-full justify-center group-data-[state=expanded]:justify-start rounded-md"
                   >
                     <Link href={item.url}>
                       <item.icon className="h-4 w-4" />
@@ -188,7 +181,7 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
               ))}
               {/* Theme Toggle */}
               <SidebarMenuItem className="group-data-[state=collapsed]:hidden">
-                <SidebarMenuButton asChild className="w-full justify-start">
+                <SidebarMenuButton asChild className="w-full justify-start rounded-md">
                   <label className="flex w-full cursor-pointer items-center justify-between">
                     <div className="flex items-center gap-2">
                       {resolvedTheme === 'dark' ? <Moon className="h-4 w-4" /> : <Sun className="h-4 w-4" />}
@@ -204,7 +197,7 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
                         aria-label="Toggle dark mode"
                       />
                     ) : (
-                       <div className="ml-auto h-5 w-9 rounded-full bg-muted animate-pulse" /> // Skeleton loader
+                       <div className="ml-auto h-5 w-9 rounded-full bg-muted animate-pulse" />
                     )}
                   </label>
                 </SidebarMenuButton>
@@ -214,8 +207,7 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
         </SidebarGroup>
       </SidebarContent>
 
-      <SidebarFooter className="border-t border-sidebar-border p-2"> {/* Add border */}
-         {/* Use UserNav component here */}
+      <SidebarFooter className="p-2">
          <UserNav />
       </SidebarFooter>
     </Sidebar>

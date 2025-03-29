@@ -1,16 +1,12 @@
 import { NextResponse } from "next/server";
-import { readFile, readdir } from "fs/promises";
-import { join } from "path";
-import { existsSync } from "fs";
-
-// This is a temporary solution for demo purposes
-const UPLOAD_DIR = join(process.cwd(), "uploads");
+import { getDocument, downloadFile, getSignedUrl } from "lib/firebase/admin";
 
 // Get the content type for a file based on its extension
 function getContentType(fileName: string): string {
-  if (fileName.endsWith('.pdf')) return 'application/pdf';
-  if (fileName.endsWith('.png')) return 'image/png';
-  if (fileName.endsWith('.jpg') || fileName.endsWith('.jpeg')) return 'image/jpeg';
+  const lowerFileName = fileName.toLowerCase();
+  if (lowerFileName.endsWith('.pdf')) return 'application/pdf';
+  if (lowerFileName.endsWith('.png')) return 'image/png';
+  if (lowerFileName.endsWith('.jpg') || lowerFileName.endsWith('.jpeg')) return 'image/jpeg';
   return 'application/octet-stream';
 }
 
@@ -21,45 +17,32 @@ export async function GET(
   try {
     const { id } = params;
     const documentId = id;
-    const documentDir = join(UPLOAD_DIR, documentId);
     
-    // Check if the document directory exists
-    if (!existsSync(documentDir)) {
+    // Get document metadata from Firestore
+    const document = await getDocument<any>("documents", documentId);
+    
+    if (!document) {
       return NextResponse.json(
         { error: "Document not found" },
         { status: 404 }
       );
     }
     
-    // Get the file from the document directory
-    const files = await readdir(documentDir);
-    if (files.length === 0) {
+    // Get the storage path from the document metadata
+    const storagePath = document.storagePath;
+    
+    if (!storagePath) {
       return NextResponse.json(
-        { error: "No files found for this document" },
+        { error: "No file path found for this document" },
         { status: 404 }
       );
     }
     
-    // Filter for document files (PDF, PNG, JPG, JPEG)
-    const docFiles = files.filter(file => 
-      file.endsWith('.pdf') || 
-      file.endsWith('.png') || 
-      file.endsWith('.jpg') || 
-      file.endsWith('.jpeg')
-    );
+    // Extract the file name for content type detection
+    const fileName = storagePath.split('/').pop() || '';
     
-    if (docFiles.length === 0) {
-      return NextResponse.json(
-        { error: "No document file found" },
-        { status: 404 }
-      );
-    }
-    
-    const fileName = docFiles[0]; // Get the first document file
-    const filePath = join(documentDir, fileName);
-    
-    // Read the file
-    const fileBuffer = await readFile(filePath);
+    // Download the file from Firebase Storage
+    const fileBuffer = await downloadFile(storagePath);
     
     // Return the file as a blob with appropriate content type
     const contentType = getContentType(fileName);

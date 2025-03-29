@@ -37,13 +37,13 @@
 
     /* --- SIDEBAR COLORS (Light - Adjusted for consistency) --- */
     --sidebar: hsl(0, 0%, 98%); /* HSL value for light sidebar */
-    --sidebar-foreground: hsl(0, 0%, 15%);
-    --sidebar-primary: hsl(0, 0%, 35%); /* Match primary */
-    --sidebar-primary-foreground: hsl(0, 0%, 98%); /* Match primary-foreground */
-    --sidebar-accent: hsl(0, 0%, 92%); /* Slightly darker accent */
-    --sidebar-accent-foreground: hsl(0, 0%, 15%);
-    --sidebar-border: hsl(0, 0%, 88%); /* Match border */
-    --sidebar-ring: hsl(0, 0%, 40%); /* Match ring */
+    --sidebar-foreground: 240 5.3% 26.1%;
+    --sidebar-primary: 240 5.9% 10%; /* Match primary */
+    --sidebar-primary-foreground: 0 0% 98%; /* Match primary-foreground */
+    --sidebar-accent: 240 4.8% 95.9%; /* Slightly darker accent */
+    --sidebar-accent-foreground: 240 5.9% 10%;
+    --sidebar-border: 220 13% 91%; /* Match border */
+    --sidebar-ring: 217.2 91.2% 59.8%; /* Match ring */
     --sidebar-muted-foreground: hsl(0, 0%, 45%); /* Match muted-foreground */
 
     /* --- DASHBOARD LAYOUT VARIABLES (Keep these) --- */
@@ -52,6 +52,7 @@
     --font-sans: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
     /* --sidebar-width set via style prop */
     --sidebar-width-icon: 3rem;
+    --sidebar-background: 0 0% 98%;
   }
 
   .dark {
@@ -85,14 +86,14 @@
 
     /* --- SIDEBAR COLORS (Dark - Adjusted for consistency) --- */
     --sidebar: hsl(210, 5%, 13%); /* HSL value for dark sidebar */
-    --sidebar-foreground: hsl(210, 15%, 90%);
-    --sidebar-primary: hsl(210, 15%, 50%); /* Match primary */
-    --sidebar-primary-foreground: hsl(210, 15%, 5%); /* Match primary-foreground */
-    --sidebar-accent: hsl(210, 5%, 20%); /* Slightly darker accent */
-    --sidebar-accent-foreground: hsl(210, 15%, 90%);
-    --sidebar-border: hsl(210, 5%, 25%); /* Match border */
-    --sidebar-ring: hsl(210, 15%, 65%); /* Match ring */
-    --sidebar-muted-foreground: hsl(210, 15%, 65%); /* Match muted-foreground */
+    --sidebar-foreground: 240 4.8% 95.9%;
+    --sidebar-primary: 224.3 76.3% 48%; /* Match primary */
+    --sidebar-primary-foreground: 0 0% 100%; /* Match primary-foreground */
+    --sidebar-accent: 240 3.7% 15.9%; /* Slightly darker accent */
+    --sidebar-accent-foreground: 240 4.8% 95.9%;
+    --sidebar-border: 240 3.7% 15.9%; /* Match border */
+    --sidebar-ring: 217.2 91.2% 59.8%; /* Match ring */
+    --sidebar-muted-foreground: hsl(210, 15%, 65%); /* Match muted-foreground */ --sidebar-background: 240 5.9% 10%;
   }
 
   * {
@@ -188,3 +189,12 @@
   to { height: 0px; }
 }
 /* Add other keyframes */
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+  body {
+    @apply bg-background text-foreground;
+  }
+}

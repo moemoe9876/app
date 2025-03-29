@@ -1,12 +1,12 @@
 // components/dashboard/site-header.tsx
 "use client"
 
-import { Separator } from "@/components/ui/separator" // Use project's ui separator
-import { SidebarTrigger } from "@/components/ui/sidebar" // Use the NEW sidebar trigger
+import { Separator } from "@/components/ui/separator"
+import { SidebarTrigger } from "@/components/ui/sidebar"
 import { ModeToggle } from "@/components/dashboard/mode-toggle"
 import { usePathname } from "next/navigation"
 import { cn } from "@/lib/utils"
-import { UserNav } from "./user-nav"
+import { UserNav } from "@/components/dashboard/user-nav"
 
 interface SiteHeaderProps extends React.HTMLAttributes<HTMLElement> {}
 
@@ -28,16 +28,16 @@ export function SiteHeader({ className, ...props }: SiteHeaderProps) {
   }
 
   return (
-    // Use --header-height variable and match Shadcn example styling
-    <header className={cn(
-        "flex h-[var(--header-height)] shrink-0 items-center gap-2 border-b border-border bg-background transition-[width,height] ease-linear", // Use standard border color
+    <header 
+      className={cn(
+        "sticky top-0 z-30 flex h-[var(--header-height)] shrink-0 items-center border-b bg-background px-4 lg:px-6 rounded-t-lg", 
         className
       )}
       {...props}
     >
-      <div className="flex w-full items-center gap-1 px-4 lg:gap-2 lg:px-6">
+      <div className="flex w-full items-center gap-1 lg:gap-2">
         {/* Sidebar Trigger */}
-        <SidebarTrigger className="-ml-1 text-foreground hover:bg-accent" />
+        <SidebarTrigger className="-ml-1 text-foreground hover:bg-accent rounded-md" />
         <Separator
           orientation="vertical"
           className="mx-2 data-[orientation=vertical]:h-4"
@@ -46,7 +46,7 @@ export function SiteHeader({ className, ...props }: SiteHeaderProps) {
         <h1 className="text-base font-medium text-foreground">{getTitle()}</h1>
 
         {/* Right Aligned Items */}
-        <div className="ml-auto flex items-center gap-2 md:gap-4"> {/* Adjusted gap */}
+        <div className="ml-auto flex items-center gap-2 md:gap-4">
           <ModeToggle />
           <UserNav />
         </div>

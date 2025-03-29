@@ -1,16 +1,12 @@
 import { NextResponse } from "next/server";
-import { readFile, readdir, writeFile } from "fs/promises";
 import { join } from "path";
 import { GoogleGenerativeAI } from "@google/generative-ai";
-import { existsSync } from "fs";
+import { getDocument, getFile, saveFile } from "lib/firebase/admin";
 
 // Check if API key exists before initializing
 const apiKey = process.env.GEMINI_API_KEY;
 const genAI = apiKey ? new GoogleGenerativeAI(apiKey) : null;
 const MODEL_ID = "gemini-2.0-flash";
-
-// This is a temporary solution for demo purposes
-const UPLOAD_DIR = join(process.cwd(), "uploads");
 
 // Define types for our data structure
 interface PositionData {
@@ -59,90 +55,69 @@ export async function GET(
   try {
     const { id } = params;
     const documentId = id;
-    const documentDir = join(UPLOAD_DIR, documentId);
     
-    // Check if the document directory exists
-    if (!existsSync(documentDir)) {
+    // Get document metadata from Firestore
+    const documentData = await getDocument("documents", documentId);
+    
+    if (!documentData) {
       return NextResponse.json(
         { error: "Document not found" },
         { status: 404 }
       );
     }
     
-    // Get the file from the document directory
-    const files = await readdir(documentDir);
-    const documentFiles = files.filter(file => 
-      file.endsWith('.pdf') || 
-      file.endsWith('.png') || 
-      file.endsWith('.jpg') || 
-      file.endsWith('.jpeg')
-    );
+    const storagePath = documentData.storagePath;
+    const fileName = documentData.fileName;
     
-    if (documentFiles.length === 0) {
+    // Check if we already have extracted data
+    const extractedDataStoragePath = `user_uploads/${documentData.userId}/${documentId}/extracted_data.json`;
+    let extractedData: ExtractedData | null = null;
+    let extractionMetadata: ExtractionMetadata | null = null;
+    
+    try {
+      // Try to get extracted data if it exists
+      const extractedDataBuffer = await getFile(extractedDataStoragePath);
+      
+      if (extractedDataBuffer) {
+        const parsedData = JSON.parse(extractedDataBuffer.toString());
+        extractedData = parsedData.data;
+        extractionMetadata = parsedData.metadata;
+        
+        return NextResponse.json({
+          documentId,
+          fileName,
+          extractedData,
+          metadata: extractionMetadata
+        });
+      }
+    } catch (error) {
+      // Extracted data doesn't exist, proceed with extraction
+      console.log("No extracted data found, proceeding with extraction", error);
+    }
+    
+    // Otherwise, extract data from the document
+    const startTime = Date.now();
+    const fileBuffer = await getFile(storagePath);
+    
+    if (!fileBuffer) {
       return NextResponse.json(
-        { error: "No document files found for this document" },
+        { error: "Document file not found in storage" },
         { status: 404 }
       );
     }
     
-    const fileName = documentFiles[0]; // Get the first document file
-    const filePath = join(documentDir, fileName);
+    const base64 = fileBuffer.toString("base64");
     
-    // Check if we already have extracted data
-    const extractedDataPath = join(documentDir, "extracted_data.json");
-    let extractedData: ExtractedData | null = null;
-    let extractionMetadata: ExtractionMetadata | null = null;
+    // Get custom extraction prompt from document data if available
+    let customPrompt = documentData.extractionPrompt || "";
     
-    if (existsSync(extractedDataPath)) {
-      // If we already have extracted data, return it
-      const dataBuffer = await readFile(extractedDataPath);
-      const parsedData = JSON.parse(dataBuffer.toString());
-      extractedData = parsedData.data;
-      extractionMetadata = parsedData.metadata;
-      
-      return NextResponse.json({
-        documentId,
-        fileName,
-        extractedData,
-        metadata: extractionMetadata
-      });
-    } else {
-      // Otherwise, extract data from the document
-      const startTime = Date.now();
-      const fileBuffer = await readFile(filePath);
-      const base64 = fileBuffer.toString("base64");
-      
-      // Check if there's a custom extraction prompt
-      const promptPath = join(documentDir, "extraction_prompt.txt");
-      let customPrompt = "";
-      
-      if (existsSync(promptPath)) {
-        try {
-          const promptBuffer = await readFile(promptPath);
-          customPrompt = promptBuffer.toString().trim();
-        } catch (error) {
-          console.error("Error reading custom prompt:", error);
-        }
-      }
-      
-      // Check for extraction options
-      const optionsPath = join(documentDir, "extraction_options.json");
-      let extractionOptions = {
-        includeConfidence: true,
-        includePositions: false,
-        detectDocumentType: true,
-        temperature: 0.1
-      };
-      
-      if (existsSync(optionsPath)) {
-        try {
-          const optionsBuffer = await readFile(optionsPath);
-          extractionOptions = JSON.parse(optionsBuffer.toString());
-        } catch (error) {
-          console.error("Error parsing extraction options:", error);
-          // Continue with defaults
-        }
-      }
+    // Use extraction options from document data if available
+    let extractionOptions = documentData.extractionOptions || {
+      includeConfidence: true,
+      includePositions: false,
+      detectDocumentType: true,
+      temperature: 0.1
+    };
       
       // Check if API key is configured
       if (!process.env.GEMINI_API_KEY) {
@@ -368,14 +343,22 @@ IMPORTANT INSTRUCTIONS:
             });
           }
           
-          // Save the extracted data and metadata for future requests
-          await writeFile(
-            extractedDataPath, 
-            JSON.stringify({
+          // Save the extracted data and metadata to Firebase Storage
+          await saveFile(
+            extractedDataStoragePath,
+            Buffer.from(JSON.stringify({
               data: extractedData,
               metadata: extractionMetadata
-            })
+            })),
+            { contentType: 'application/json' }
           );
+          
+          // Update document status in Firestore
+          await getDocument("documents", documentId, {
+            status: "completed",
+            extractedDataStoragePath: extractedDataStoragePath,
+            updatedAt: new Date().toISOString()
+          });
           
           return NextResponse.json({
             documentId,

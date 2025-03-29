@@ -3,9 +3,7 @@
 
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
-// --- Use the NEW sidebar components ---
-import { SidebarProvider } from "@/components/ui/sidebar"; // Only Provider needed here
-// --- End Use the NEW sidebar components ---
+import { SidebarProvider, SidebarInset } from "@/components/ui/sidebar";
 import { AppSidebar } from "@/components/dashboard/app-sidebar";
 import { SiteHeader } from "@/components/dashboard/site-header";
 import { useAuth } from "@/context/AuthContext";
@@ -70,22 +68,25 @@ export default function DashboardLayout({
           "--spacing": "0.25rem",
         } as React.CSSProperties
       }
-      // The wrapper needs to allow the fixed sidebar and the main content flow
-      className="min-h-screen" // Removed flex here
+      className="min-h-screen"
     >
-      {/* Sidebar will be positioned fixed/absolute via its own component logic */}
-      <AppSidebar collapsible="offcanvas" />
-
-      {/* Main content area - occupies space normally */}
-      {/* Add padding-top to account for the fixed header */}
-      <div className="flex flex-col md:pl-[var(--sidebar-width)] transition-[padding] duration-200 ease-linear group-data-[state=collapsed]/sidebar-wrapper:md:pl-0">
-        {/* SiteHeader is likely fixed or sticky itself */}
+      {/* Use AppSidebar with variant="inset" to match shadcn dashboard-01 */}
+      <AppSidebar variant="inset" collapsible="offcanvas" />
+      
+      {/* Use SidebarInset for the main content area */}
+      <SidebarInset className="rounded-lg overflow-hidden border border-border">
+        {/* SiteHeader */}
         <SiteHeader />
-        {/* Content area */}
-        <main className="flex-1 overflow-auto p-4 md:p-6 lg:p-8">
-           {children}
-        </main>
-      </div>
+        
+        {/* Main content area */}
+        <div className="flex flex-1 flex-col">
+          <div className="flex flex-1 flex-col gap-2">
+            <div className="flex flex-col gap-4 p-4 md:gap-6 md:p-6 lg:p-8">
+              {children}
+            </div>
+          </div>
+        </div>
+      </SidebarInset>
     </SidebarProvider>
   );
 }

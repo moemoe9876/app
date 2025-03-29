@@ -27,7 +27,7 @@ export function UserNav() {
   if (!user) {
     // Optional: Render login button if needed, or null if header handles it
     return (
-       <Button variant="outline" size="sm" asChild>
+       <Button variant="outline" size="sm" asChild className="rounded-full">
          <Link href="/login">Log In</Link>
        </Button>
     );
@@ -43,16 +43,16 @@ export function UserNav() {
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
-        <Button variant="ghost" className="relative h-9 w-9 rounded-full p-0 focus-visible:ring-1 focus-visible:ring-ring focus-visible:ring-offset-1 focus-visible:ring-offset-background">
-          <Avatar className="h-8 w-8"> {/* Slightly smaller avatar */}
+        <Button variant="ghost" className="relative h-9 w-9 rounded-full p-0">
+          <Avatar className="h-8 w-8 rounded-full"> {/* Explicitly set rounded-full */}
             <AvatarImage src={user.photoURL || undefined} alt={user.displayName || "User"} />
-            <AvatarFallback className="bg-muted text-muted-foreground">{getInitials(user.displayName)}</AvatarFallback> {/* Use muted colors */}
+            <AvatarFallback className="bg-muted text-muted-foreground rounded-full">{getInitials(user.displayName)}</AvatarFallback> {/* Use muted colors */}
           </Avatar>
         </Button>
       </DropdownMenuTrigger>
       <DropdownMenuContent
         className={cn(
-            "w-56 rounded-md border border-border bg-popover text-popover-foreground shadow-lg", // Use theme variables
+            "w-56 rounded-lg border border-border bg-popover text-popover-foreground shadow-lg", // Use theme variables and rounded-lg
             "data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95 data-[side=bottom]:slide-in-from-top-2 data-[side=left]:slide-in-from-right-2 data-[side=right]:slide-in-from-left-2 data-[side=top]:slide-in-from-bottom-2" // Standard ShadCN animations
         )}
         align="end"
@@ -69,13 +69,13 @@ export function UserNav() {
         <DropdownMenuSeparator className="bg-border -mx-1 my-1" /> {/* Use theme border */}
         <DropdownMenuGroup>
            {/* Use cn for consistent styling and apply focus/hover states */}
-          <DropdownMenuItem asChild className="focus:bg-accent focus:text-accent-foreground">
+          <DropdownMenuItem asChild className="focus:bg-accent focus:text-accent-foreground rounded-md">
             <Link href="/dashboard/profile" className="flex items-center cursor-pointer">
               <UserIcon className="mr-2 h-4 w-4" />
               <span>Profile</span>
             </Link>
           </DropdownMenuItem>
-          <DropdownMenuItem asChild className="focus:bg-accent focus:text-accent-foreground">
+          <DropdownMenuItem asChild className="focus:bg-accent focus:text-accent-foreground rounded-md">
             <Link href="/dashboard/settings" className="flex items-center cursor-pointer">
               <Settings className="mr-2 h-4 w-4" />
               <span>Settings</span>
@@ -83,7 +83,7 @@ export function UserNav() {
           </DropdownMenuItem>
         </DropdownMenuGroup>
         <DropdownMenuSeparator className="bg-border -mx-1 my-1" />
-        <DropdownMenuItem onClick={signOutUser} className="cursor-pointer focus:bg-destructive/10 focus:text-destructive text-destructive">
+        <DropdownMenuItem onClick={signOutUser} className="cursor-pointer focus:bg-destructive/10 focus:text-destructive text-destructive rounded-md">
           <LogOut className="mr-2 h-4 w-4" />
           <span>Log out</span>
         </DropdownMenuItem>
