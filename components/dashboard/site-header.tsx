@@ -6,7 +6,6 @@ import { SidebarTrigger } from "@/components/ui/sidebar"
 import { ModeToggle } from "@/components/dashboard/mode-toggle"
 import { usePathname } from "next/navigation"
 import { cn } from "@/lib/utils"
-import { UserNav } from "@/components/dashboard/user-nav"
 
 interface SiteHeaderProps extends React.HTMLAttributes<HTMLElement> {}
 
@@ -48,7 +47,6 @@ export function SiteHeader({ className, ...props }: SiteHeaderProps) {
         {/* Right Aligned Items */}
         <div className="ml-auto flex items-center gap-2 md:gap-4">
           <ModeToggle />
-          <UserNav />
         </div>
       </div>
     </header>
